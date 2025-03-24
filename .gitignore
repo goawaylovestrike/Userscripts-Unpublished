@@ -43,3 +43,10 @@ coverage/
 # Optional: Backup files
 *.bak
 *.backup
+
+# Userscript specific
+*.user.js.map
+*.meta.js
+
+# Development/Testing browsers profiles
+test-profiles/

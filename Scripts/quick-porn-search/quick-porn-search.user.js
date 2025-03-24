@@ -1,10 +1,9 @@
 // ==UserScript==
-// @name        Quick porn search
-// @description Adds a dropdown on many porn sites to search various sites either using data found in the html or simply pulling it from the url.
-// @namespace   quickpornsearch
-// @author      GoAwayLoveStrike
-// @license Creative Commons Attribution Non Commercial Share Alike 4.0 International (CC BY-NC-SA 4.0)
-// @version 4.2
+// @name         Quick Porn Search
+// @namespace    https://github.com/goawaylovestrike/Userscripts/quick-porn-search
+// @description  Adds a dropdown on many porn sites to search various sites either using data found in the html or simply pulling it from the url.
+// @author       GoAwayLoveStrike
+// @version      4.2
 // @include https://bangbros.com/*
 // @include https://www.pervmom.com/*
 // @include https://pornpros.com/*
@@ -98,7 +97,7 @@ const searchButtons = [
 
     var movieId = null;
     let initAttempts = 0;
-    const MAX_ATTEMPTS = 30; // Changed from 10 to 30
+    const MAX_ATTEMPTS = 3; // Changed from 10 to 30
 
     // Add this function to check if we're on a PornDB page that should be excluded
     function shouldSkipCurrentPage() {
