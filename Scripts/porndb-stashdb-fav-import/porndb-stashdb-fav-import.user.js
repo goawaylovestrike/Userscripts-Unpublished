@@ -15,6 +15,10 @@
 (function() {
     'use strict';
 
+    function sleep(ms) {
+        return new Promise(resolve => setTimeout(resolve, ms));
+    }
+
     function waitForPerformers(maxAttempts = 10) {
         return new Promise((resolve) => {
             let attempts = 0;
@@ -37,17 +41,11 @@
         });
     }
 
-    async function extractFavoritesFromSource() {
+    async function extractPerformersFromCurrentPage() {
         const performerCells = await waitForPerformers();
         
-        if (performerCells.length === 0) {
-            console.log('No performers found after waiting');
-            return [];
-        }
-
-        const favorites = performerCells.map(cell => {
+        return performerCells.map(cell => {
             const name = cell.textContent.trim();
-            // Find the StashDB link in the same row
             const row = cell.closest('tr');
             const stashLink = row.querySelector('a[href*="stashdb.org/performers/"]');
             const stashId = stashLink ? stashLink.href.split('/').pop() : null;
@@ -55,9 +53,36 @@
             console.log(`Found performer: ${name} (StashID: ${stashId})`);
             return { name, stashId };
         }).filter(p => p.name && p.name !== '');
+    }
 
-        console.log(`Found ${favorites.length} favorites`);
-        return favorites;
+    async function getAllPerformers() {
+        let allPerformers = [];
+        let currentPage = 1;
+        let hasNextPage = true;
+
+        while (hasNextPage) {
+            console.log(`Processing page ${currentPage}`);
+            
+            // Extract performers from current page
+            const performers = await extractPerformersFromCurrentPage();
+            allPerformers = allPerformers.concat(performers);
+            
+            // Check if there's a next page
+            const nextButton = Array.from(document.querySelectorAll('.n-pagination-item')).find(
+                item => item.textContent.trim() === (currentPage + 1).toString()
+            );
+            
+            if (nextButton) {
+                nextButton.click();
+                currentPage++;
+                // Wait for the new page to load
+                await sleep(1000);
+            } else {
+                hasNextPage = false;
+            }
+        }
+
+        return allPerformers;
     }
 
     function createImportButton() {
@@ -77,9 +102,20 @@
         `;
         
         button.addEventListener('click', async () => {
-            const favorites = await extractFavoritesFromSource();
-            GM_setValue('porndb_favorites', JSON.stringify(favorites));
-            alert(`Found ${favorites.length} favorites. Now go to StashDB to import them.`);
+            button.disabled = true;
+            button.textContent = 'Collecting favorites...';
+            
+            try {
+                const favorites = await getAllPerformers();
+                GM_setValue('porndb_favorites', JSON.stringify(favorites));
+                alert(`Found ${favorites.length} favorites across all pages. Now go to StashDB to import them.`);
+            } catch (error) {
+                console.error('Error collecting favorites:', error);
+                alert('Error collecting favorites. Check console for details.');
+            } finally {
+                button.disabled = false;
+                button.textContent = 'Import Favorites to StashDB';
+            }
         });
 
         document.body.appendChild(button);
