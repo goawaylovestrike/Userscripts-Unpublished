@@ -3,7 +3,7 @@
 // @namespace    https://github.com/goawaylovestrike/Userscripts/quick-porn-search
 // @description  Adds a dropdown on many porn sites to search various sites either using data found in the html or simply pulling it from the url.
 // @author       GoAwayLoveStrike
-// @version      4.2
+// @version      4.3
 // @updateURL    https://raw.githubusercontent.com/goawaylovestrike/Userscripts/main/Scripts/quick-porn-search/quick-porn-search.user.js
 // @downloadURL  https://raw.githubusercontent.com/goawaylovestrike/Userscripts/main/Scripts/quick-porn-search/quick-porn-search.user.js
 // @include https://bangbros.com/*
@@ -93,6 +93,11 @@ const searchButtons = [
         url: 'https://w15.pornhoarder.tv/search/?search={query}&sort=0&date=0&servers%5B%5D=47&servers%5B%5D=21&servers%5B%5D=40&servers%5B%5D=45&servers%5B%5D=12&servers%5B%5D=35&servers%5B%5D=25&servers%5B%5D=41&servers%5B%5D=44&servers%5B%5D=42&servers%5B%5D=43&servers%5B%5D=29&author=0&page=1'
     }
 ];
+
+function isMobileDevice() {
+    return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) 
+        || window.innerWidth <= 768;
+}
 
 (function() {
     'use strict';
@@ -380,10 +385,12 @@ const searchButtons = [
         if (movieId && movieId.length > 0) {
             const dropdownContainer = document.createElement('div');
             dropdownContainer.className = 'search-button-container';
+            
+            // Adjust container position based on device
+            const isMobile = isMobileDevice();
             dropdownContainer.style.cssText = `
                 position: fixed !important;
-                left: 20px !important;
-                top: 80px !important;
+                ${isMobile ? 'left: 10px !important; top: 10px !important;' : 'left: 20px !important; top: 80px !important;'}
                 z-index: 2147483647 !important;
                 pointer-events: auto !important;
                 visibility: visible !important;
@@ -392,33 +399,55 @@ const searchButtons = [
 
             // Create the dropdown button
             const dropdownButton = document.createElement('button');
-            dropdownButton.textContent = '🔍 Search';
-            dropdownButton.style.cssText = `
-                background: #ffffff !important;
-                color: #000000 !important;
-                font-family: Arial, sans-serif !important;
-                font-weight: bold !important;
-                padding: 10px 15px !important;
-                border: 2px solid #000000 !important;
-                border-radius: 7px !important;
-                font-size: 18px !important;
-                cursor: pointer !important;
-                min-width: 140px !important;
-                box-shadow: 0 4px 8px rgba(0,0,0,0.3) !important;
-            `;
+            if (isMobile) {
+                dropdownButton.textContent = '🔍';
+                dropdownButton.style.cssText = `
+                    background: #ffffff !important;
+                    color: #000000 !important;
+                    font-family: Arial, sans-serif !important;
+                    font-weight: bold !important;
+                    padding: 8px !important;
+                    border: 2px solid #000000 !important;
+                    border-radius: 50% !important;
+                    font-size: 16px !important;
+                    cursor: pointer !important;
+                    width: 40px !important;
+                    height: 40px !important;
+                    display: flex !important;
+                    align-items: center !important;
+                    justify-content: center !important;
+                    box-shadow: 0 4px 8px rgba(0,0,0,0.3) !important;
+                `;
+            } else {
+                dropdownButton.textContent = '🔍 Search';
+                dropdownButton.style.cssText = `
+                    background: #ffffff !important;
+                    color: #000000 !important;
+                    font-family: Arial, sans-serif !important;
+                    font-weight: bold !important;
+                    padding: 10px 15px !important;
+                    border: 2px solid #000000 !important;
+                    border-radius: 7px !important;
+                    font-size: 18px !important;
+                    cursor: pointer !important;
+                    min-width: 140px !important;
+                    box-shadow: 0 4px 8px rgba(0,0,0,0.3) !important;
+                `;
+            }
 
             // Create the dropdown content
             const dropdownContent = document.createElement('div');
             dropdownContent.style.cssText = `
                 display: none;
-                position: absolute !important; 
+                position: absolute !important;
                 background-color: #ffffff !important;
-                min-width: 140px !important;
+                min-width: ${isMobile ? '200px' : '140px'} !important;
                 box-shadow: 0 4px 8px rgba(0,0,0,0.3) !important;
                 border-radius: 7px !important;
                 margin-top: 5px !important;
                 border: 2px solid #000000 !important;
                 overflow: hidden !important;
+                ${isMobile ? 'left: 0 !important;' : ''}
             `;
 
             searchButtons.forEach(button => {
@@ -574,4 +603,5 @@ const searchButtons = [
         childList: true
     });
 })();
+
 
