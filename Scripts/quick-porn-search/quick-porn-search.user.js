@@ -104,7 +104,12 @@ function isMobileDevice() {
 
     var movieId = null;
     let initAttempts = 0;
-    const MAX_ATTEMPTS = 3; // Changed from 10 to 30
+    const MAX_ATTEMPTS = 3;
+    
+    // Add these variables at the top level
+    let includeTitle = true;
+    let includePerformers = true;
+    let includeSite = true;
 
     // Add this function to check if we're on a PornDB page that should be excluded
     function shouldSkipCurrentPage() {
@@ -115,9 +120,10 @@ function isMobileDevice() {
             // Only show on scene and movie pages
             const isScenePage = currentPath.startsWith('/scenes/');
             const isMoviePage = currentPath.startsWith('/movies/');
+            const isJavPage = currentPath.startsWith('/jav/');
             
             // Skip (return true) if we're NOT on a scene or movie page
-            return !(isScenePage || isMoviePage);
+            return !(isScenePage || isMoviePage || isJavPage);
         }
         return false;
     }
@@ -264,7 +270,8 @@ function isMobileDevice() {
             case 'www.pervtherapy.com':
             case 'www.sisswap.com':
             case 'www.sislovesme.com':
-            case 'www.swappz.com':showTestMessage('TEAMSKEET');
+            case 'www.swappz.com':
+                showTestMessage('TEAMSKEET');
                 console.log('Debugging TeamSkeet/MYLF selectors...');
                 
                 title = document.querySelector('.sceneTitle')?.textContent.trim();
@@ -327,7 +334,7 @@ function isMobileDevice() {
                 title = document.querySelector('.card-header h3 span')?.textContent.trim();
                 performers = Array.from(document.querySelectorAll('.scene-performer span'))
                     .map(performer => performer.textContent.trim()
-                        .replace(/\s*\([^)]*\)/g, '') // Remove anything in parentheses including the parentheses
+                        .replace(/\s*\([^)]*\)/g, '')
                         .trim());
                 
                 const stashdbSiteElement = document.querySelector('a[href^="/studios/"]');
@@ -343,12 +350,12 @@ function isMobileDevice() {
                 title = document.querySelector('.card-header h3 span')?.textContent.trim();
                 performers = Array.from(document.querySelectorAll('.scene-performer span'))
                     .map(performer => performer.textContent.trim()
-                        .replace(/\s*\([^)]*\)/g, '') // Remove anything in parentheses including the parentheses
+                        .replace(/\s*\([^)]*\)/g, '')
                         .trim());
                 
-                // const fansdbSiteElement = document.querySelector('a[href^="/studios/"]');
-                // site = fansdbSiteElement?.textContent.replace(/[^\w-]|[\s]/g, '');
-                site = ''
+                const fansdbSiteElement = document.querySelector('a[href^="/studios/"]');
+                site = fansdbSiteElement?.textContent;
+                
                 console.log('Found site:', site);
                 break;
 
@@ -363,23 +370,49 @@ function isMobileDevice() {
                 break;
         }
 
-        // Construct movieId at the end using the collected information
-        if (title) {
-            // Clean up site name by removing spaces
-            site = site?.replace(/[\s']+/g, '');
-            
-            movieId = `${performers.join(' ')} ${title} ${site}`.trim()
-                .replace(/[^\w\s-.!&']/g, ' ')  // Added apostrophe to allowed characters
-                .replace(/\s+/g, ' ');
-            console.log(`Final movieId for ${hostname}:`, movieId);
+        // Build movieId based on checkbox preferences
+        const parts = [];
+        
+        if (includePerformers && performers.length > 0) {
+            parts.push(performers.join(' '));
         }
+        
+        if (includeTitle) {
+            parts.push(title);
+        }
+        
+        if (includeSite && site) {
+            parts.push(site);
+        }
+        
+        movieId = parts.join(' ').trim()
+            .replace(/[^\w\s-.!&']/g, ' ')
+            .replace(/\s+/g, ' ');
+        console.log(`Final movieId for ${hostname}:`, movieId);
+    }
+
+    function updateSearchLinks() {
+        // Get all existing links in the dropdown
+        const links = document.querySelectorAll('.search-button-container a');
+        
+        // Update each link's href with the new movieId
+        links.forEach(link => {
+            const buttonName = link.textContent.trim();
+            const button = searchButtons.find(b => b.name === buttonName);
+            if (button) {
+                const query = button.queryTransform ? 
+                    button.queryTransform(movieId) : 
+                    encodeURIComponent(movieId);
+                link.href = button.url.replace('{query}', query);
+            }
+        });
     }
 
     function updateSearchButtons() {
         getMovieId();
 
         // Remove existing buttons
-        document.querySelectorAll('.search-button-container').forEach(el => el.remove());  // Fixed typo here
+        document.querySelectorAll('.search-button-container').forEach(el => el.remove());
 
         // Only create dropdown if we have a valid movieId
         if (movieId && movieId.length > 0) {
@@ -457,7 +490,6 @@ function isMobileDevice() {
                 // Create favicon image
                 const favicon = document.createElement('img');
                 const urlObj = new URL(button.url);
-                // Get the domain without subdomain
                 const domain = urlObj.hostname.split('.').slice(-2).join('.');
                 favicon.src = `${urlObj.protocol}//${domain}/favicon.ico`;
                 favicon.style.cssText = `
@@ -468,7 +500,6 @@ function isMobileDevice() {
                     filter: drop-shadow(0 1px 1px rgba(0,0,0,0.2)) !important;
                 `;
                 
-                // Create text span with bold text
                 const textSpan = document.createElement('span');
                 textSpan.textContent = button.name;
                 textSpan.style.cssText = `
@@ -510,7 +541,6 @@ function isMobileDevice() {
                     line-height: normal !important;
                 `;
 
-                // Add specific styles for the container
                 const container = document.createElement('div');
                 container.className = 'search-button-container';
                 container.style.cssText = `
@@ -538,21 +568,81 @@ function isMobileDevice() {
                 dropdownContent.appendChild(link);
             });
 
+            const separator = document.createElement('div');
+            separator.style.cssText = `
+                border-top: 2px solid #eee !important;
+                margin-top: 5px !important;
+            `;
+            dropdownContent.appendChild(separator);
+
+            const controlsDiv = document.createElement('div');
+            controlsDiv.style.cssText = `
+                padding: 10px !important;
+                background: #f8f8f8 !important;
+            `;
+
+            const options = [
+                { id: 'includePerformers', label: 'Performers', ref: () => includePerformers },
+                { id: 'includeTitle', label: 'Title', ref: () => includeTitle },
+                { id: 'includeSite', label: 'Site', ref: () => includeSite }
+            ];
+
+            options.forEach(option => {
+                const div = document.createElement('div');
+                div.style.marginBottom = '5px';
+
+                const checkbox = document.createElement('input');
+                checkbox.type = 'checkbox';
+                checkbox.id = option.id;
+                checkbox.checked = option.ref();
+                checkbox.style.cssText = `
+                    margin-right: 5px !important;
+                    cursor: pointer !important;
+                `;
+                
+                checkbox.addEventListener('change', (e) => {
+                    e.stopPropagation();
+                    switch(option.id) {
+                        case 'includePerformers':
+                            includePerformers = checkbox.checked;
+                            break;
+                        case 'includeTitle':
+                            includeTitle = checkbox.checked;
+                            break;
+                        case 'includeSite':
+                            includeSite = checkbox.checked;
+                            break;
+                    }
+                    getMovieId();
+                    updateSearchLinks();
+                });
+
+                const label = document.createElement('label');
+                label.htmlFor = option.id;
+                label.textContent = option.label;
+                label.style.cssText = `
+                    font-family: Arial, sans-serif !important;
+                    font-size: 12px !important;
+                    color: black !important;
+                    cursor: pointer !important;
+                `;
+
+                div.appendChild(checkbox);
+                div.appendChild(label);
+                controlsDiv.appendChild(div);
+            });
+
+            dropdownContent.appendChild(controlsDiv);
+
             // Toggle dropdown on click
             dropdownButton.onclick = function(e) {
                 e.stopPropagation();
                 dropdownContent.style.display = dropdownContent.style.display === 'none' ? 'block' : 'none';
             };
 
-            // Close dropdown when clicking outside
-            document.addEventListener('click', function() {
-                dropdownContent.style.display = 'none';
-            });
-
             dropdownContainer.appendChild(dropdownButton);
             dropdownContainer.appendChild(dropdownContent);
 
-            // Ensure the container is added to the document
             if (document.body) {
                 document.body.appendChild(dropdownContainer);
                 console.log('Dropdown created with movieId:', movieId);
@@ -560,13 +650,74 @@ function isMobileDevice() {
         }
     }
 
-    // Start initialization
+    // Add checkbox controls to the page
+    function createSearchControls() {
+        const controlsContainer = document.createElement('div');
+        controlsContainer.style.cssText = `
+            position: fixed !important;
+            right: 20px !important;
+            top: 20px !important;
+            background: white !important;
+            padding: 10px !important;
+            border: 2px solid black !important;
+            border-radius: 5px !important;
+            z-index: 2147483647 !important;
+        `;
+
+        const options = [
+            { id: 'includePerformers', label: 'Performers', ref: () => includePerformers },
+            { id: 'includeTitle', label: 'Title', ref: () => includeTitle },
+            { id: 'includeSite', label: 'Site', ref: () => includeSite }
+        ];
+
+        options.forEach(option => {
+            const div = document.createElement('div');
+            div.style.marginBottom = '5px';
+
+            const checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            checkbox.id = option.id;
+            checkbox.checked = option.ref();
+            checkbox.style.marginRight = '5px';
+            checkbox.addEventListener('change', () => {
+                switch(option.id) {
+                    case 'includePerformers':
+                        includePerformers = checkbox.checked;
+                        break;
+                    case 'includeTitle':
+                        includeTitle = checkbox.checked;
+                        break;
+                    case 'includeSite':
+                        includeSite = checkbox.checked;
+                        break;
+                }
+                // Refresh the search buttons with new movieId
+                getMovieId();
+                updateSearchLinks();
+            });
+
+            const label = document.createElement('label');
+            label.htmlFor = option.id;
+            label.textContent = option.label;
+            label.style.cssText = `
+                font-family: Arial, sans-serif !important;
+                font-size: 12px !important;
+                color: black !important;
+            `;
+
+            div.appendChild(checkbox);
+            div.appendChild(label);
+            controlsContainer.appendChild(div);
+        });
+
+        document.body.appendChild(controlsContainer);
+    }
+
     initialize();
 
     // Watch for URL changes and content changes
     let lastUrl = location.href;
     const observer = new MutationObserver((mutations) => {
-        // Check for URL changes
         const url = location.href;
         if (url !== lastUrl) {
             lastUrl = url;
@@ -597,11 +748,20 @@ function isMobileDevice() {
         }
     });
 
-    // Be more specific about what we observe
     observer.observe(document.body || document, {
         subtree: true,
         childList: true
     });
 })();
+
+
+
+
+
+
+
+
+
+
 
 
