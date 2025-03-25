@@ -19,38 +19,36 @@
         // Get the entire page source
         const pageSource = document.documentElement.outerHTML;
         
-        // More lenient regex pattern to match performer objects
-        const regex = /{[^{]*?"full_name"\s*:\s*"[^"]+?"[^}]*?}/g;
-        const matches = pageSource.match(regex);
-
-        if (!matches) {
-            console.log('No favorites found in source');
+        // Find the script tag containing the performer data
+        const scriptContent = pageSource.match(/window\.__NUXT__=(.*?);<\/script>/)?.[1] || '';
+        
+        // Extract the performers array from the script content
+        const performersMatch = scriptContent.match(/performers:\[(.*?)\],/)?.[1] || '';
+        
+        if (!performersMatch) {
+            console.log('No favorites data found in source');
             return [];
         }
 
-        // Parse each match and extract performer data
-        const performers = matches.map(jsonStr => {
-            try {
-                // Clean up the JSON string
-                const cleanJson = jsonStr.replace(/,$/, '');
-                const data = JSON.parse(cleanJson);
-                
-                // Log the found data for debugging
+        try {
+            // Convert the matched string into valid JSON array
+            const performersJson = `[${performersMatch}]`;
+            const performersData = JSON.parse(performersJson);
+            
+            const performers = performersData.map(data => {
                 console.log('Found performer:', data.full_name);
-                
                 return {
                     name: data.full_name,
                     stashId: data.links?.StashDB?.split('/').pop() || null
                 };
-            } catch (e) {
-                console.error('Error parsing performer JSON:', e);
-                console.log('Problematic JSON:', jsonStr);
-                return null;
-            }
-        }).filter(p => p !== null);
+            });
 
-        console.log(`Found ${performers.length} favorites`);
-        return performers;
+            console.log(`Found ${performers.length} favorites`);
+            return performers;
+        } catch (e) {
+            console.error('Error parsing performers data:', e);
+            return [];
+        }
     }
 
     function createImportButton() {
@@ -85,7 +83,4 @@
         // StashDB import logic will go here
         // We'll implement this after you confirm the favorites extraction works
     }
-
 })();
-
-
