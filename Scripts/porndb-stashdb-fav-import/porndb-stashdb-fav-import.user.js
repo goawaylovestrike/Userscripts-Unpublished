@@ -20,7 +20,7 @@
             let attempts = 0;
             
             const checkForPerformers = () => {
-                const performers = document.querySelectorAll('.performer-card');
+                const performers = document.querySelectorAll('.n-data-table-td[data-col-key="name"]');
                 console.log(`Attempt ${attempts + 1}: Found ${performers.length} performers`);
                 
                 if (performers.length > 0) {
@@ -38,25 +38,23 @@
     }
 
     async function extractFavoritesFromSource() {
-        const performers = await waitForPerformers();
+        const performerCells = await waitForPerformers();
         
-        if (performers.length === 0) {
+        if (performerCells.length === 0) {
             console.log('No performers found after waiting');
             return [];
         }
 
-        const favorites = performers.map(card => {
-            const nameElement = card.querySelector('h2.text-xl a[title]');
-            const stashLink = card.querySelector('a[href*="stashdb.org/performers/"]');
-            
-            if (!nameElement) return null;
-
-            const name = nameElement.getAttribute('title').trim();
+        const favorites = performerCells.map(cell => {
+            const name = cell.textContent.trim();
+            // Find the StashDB link in the same row
+            const row = cell.closest('tr');
+            const stashLink = row.querySelector('a[href*="stashdb.org/performers/"]');
             const stashId = stashLink ? stashLink.href.split('/').pop() : null;
 
             console.log(`Found performer: ${name} (StashID: ${stashId})`);
             return { name, stashId };
-        }).filter(p => p !== null);
+        }).filter(p => p.name && p.name !== '');
 
         console.log(`Found ${favorites.length} favorites`);
         return favorites;
