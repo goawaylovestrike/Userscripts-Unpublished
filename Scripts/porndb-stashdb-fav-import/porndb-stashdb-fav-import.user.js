@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         porndb-stashdb-fav-import
-// @namespace    https://github.com/GoAwayLoveStrike
+// @namespace    https://github.com/GoAwayLoveStrike/Userscripts/Scripts/porndb-stashdb-fav-import/
 // @version      0.1
 // @description  Import favorites from ThePornDB to StashDB
 // @author       GoAwayLoveStrike
@@ -8,6 +8,8 @@
 // @match        https://stashdb.org/*
 // @grant        GM_setValue
 // @grant        GM_getValue
+// @downloadURL  https://github.com/goawaylovestrike/Userscripts/raw/refs/heads/main/Scripts/porndb-stashdb-fav-import/porndb-stashdb-fav-import.user.js
+// @updateURL  https://github.com/goawaylovestrike/Userscripts/raw/refs/heads/main/Scripts/porndb-stashdb-fav-import/porndb-stashdb-fav-import.user.js
 // ==/UserScript==
 
 (function() {
