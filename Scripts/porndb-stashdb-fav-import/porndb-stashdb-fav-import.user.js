@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         porndb-stashdb-fav-import
 // @namespace    https://github.com/GoAwayLoveStrike/Userscripts/Scripts/porndb-stashdb-fav-import/
-// @version      0.4
+// @version      0.2
 // @description  Import favorites from ThePornDB to StashDB
 // @author       GoAwayLoveStrike
 // @match        https://theporndb.net/user/profile
@@ -15,56 +15,51 @@
 (function() {
     'use strict';
 
-    function extractFavoritesFromSource() {
-        // Get the entire page source
-        const pageSource = document.documentElement.outerHTML;
-        
-        // Debug: Log a portion of the page source
-        console.log('Page source excerpt:', pageSource.substring(0, 1000));
-        
-        // Find the script tag containing the performer data - more lenient pattern
-        const scriptPattern = /<script[^>]*>[\s\S]*?window\.__NUXT__\s*=\s*({[\s\S]*?})\s*;<\/script>/i;
-        const scriptMatch = pageSource.match(scriptPattern);
-        
-        if (!scriptMatch) {
-            console.log('No Nuxt data found in source');
-            return [];
-        }
-
-        const nuxtData = scriptMatch[1];
-        console.log('Found Nuxt data:', nuxtData.substring(0, 500));
-
-        // Try to find performers array using a more flexible pattern
-        const performersPattern = /"performers":\s*\[([\s\S]*?)\]/i;
-        const performersMatch = nuxtData.match(performersPattern);
-
-        if (!performersMatch) {
-            console.log('No performers array found in Nuxt data');
-            return [];
-        }
-
-        try {
-            // Clean up the JSON string and parse it
-            const performersJson = `[${performersMatch[1]}]`;
-            console.log('Attempting to parse:', performersJson.substring(0, 500));
+    function waitForPerformers(maxAttempts = 10) {
+        return new Promise((resolve) => {
+            let attempts = 0;
             
-            const performersData = JSON.parse(performersJson);
+            const checkForPerformers = () => {
+                const performers = document.querySelectorAll('.performer-card');
+                console.log(`Attempt ${attempts + 1}: Found ${performers.length} performers`);
+                
+                if (performers.length > 0) {
+                    resolve(Array.from(performers));
+                } else if (attempts < maxAttempts) {
+                    attempts++;
+                    setTimeout(checkForPerformers, 1000);
+                } else {
+                    resolve([]);
+                }
+            };
             
-            const performers = performersData.map(data => {
-                console.log('Processing performer data:', data);
-                return {
-                    name: data.full_name,
-                    stashId: data.links?.StashDB?.split('/').pop() || null
-                };
-            });
+            checkForPerformers();
+        });
+    }
 
-            console.log(`Found ${performers.length} favorites`);
-            return performers;
-        } catch (e) {
-            console.error('Error parsing performers data:', e);
-            console.error('Error details:', e.message);
+    async function extractFavoritesFromSource() {
+        const performers = await waitForPerformers();
+        
+        if (performers.length === 0) {
+            console.log('No performers found after waiting');
             return [];
         }
+
+        const favorites = performers.map(card => {
+            const nameElement = card.querySelector('h2.text-xl a[title]');
+            const stashLink = card.querySelector('a[href*="stashdb.org/performers/"]');
+            
+            if (!nameElement) return null;
+
+            const name = nameElement.getAttribute('title').trim();
+            const stashId = stashLink ? stashLink.href.split('/').pop() : null;
+
+            console.log(`Found performer: ${name} (StashID: ${stashId})`);
+            return { name, stashId };
+        }).filter(p => p !== null);
+
+        console.log(`Found ${favorites.length} favorites`);
+        return favorites;
     }
 
     function createImportButton() {
@@ -83,8 +78,8 @@
             cursor: pointer;
         `;
         
-        button.addEventListener('click', () => {
-            const favorites = extractFavoritesFromSource();
+        button.addEventListener('click', async () => {
+            const favorites = await extractFavoritesFromSource();
             GM_setValue('porndb_favorites', JSON.stringify(favorites));
             alert(`Found ${favorites.length} favorites. Now go to StashDB to import them.`);
         });
