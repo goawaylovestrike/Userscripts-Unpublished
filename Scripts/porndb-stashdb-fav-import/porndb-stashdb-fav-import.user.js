@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         porndb-stashdb-fav-import
 // @namespace    https://github.com/GoAwayLoveStrike/Userscripts/Scripts/porndb-stashdb-fav-import/
-// @version      0.2
+// @version      0.4
 // @description  Import favorites from ThePornDB to StashDB
 // @author       GoAwayLoveStrike
 // @match        https://theporndb.net/user/profile
@@ -19,24 +19,39 @@
         // Get the entire page source
         const pageSource = document.documentElement.outerHTML;
         
-        // Find the script tag containing the performer data
-        const scriptContent = pageSource.match(/window\.__NUXT__=(.*?);<\/script>/)?.[1] || '';
+        // Debug: Log a portion of the page source
+        console.log('Page source excerpt:', pageSource.substring(0, 1000));
         
-        // Extract the performers array from the script content
-        const performersMatch = scriptContent.match(/performers:\[(.*?)\],/)?.[1] || '';
+        // Find the script tag containing the performer data - more lenient pattern
+        const scriptPattern = /<script[^>]*>[\s\S]*?window\.__NUXT__\s*=\s*({[\s\S]*?})\s*;<\/script>/i;
+        const scriptMatch = pageSource.match(scriptPattern);
         
+        if (!scriptMatch) {
+            console.log('No Nuxt data found in source');
+            return [];
+        }
+
+        const nuxtData = scriptMatch[1];
+        console.log('Found Nuxt data:', nuxtData.substring(0, 500));
+
+        // Try to find performers array using a more flexible pattern
+        const performersPattern = /"performers":\s*\[([\s\S]*?)\]/i;
+        const performersMatch = nuxtData.match(performersPattern);
+
         if (!performersMatch) {
-            console.log('No favorites data found in source');
+            console.log('No performers array found in Nuxt data');
             return [];
         }
 
         try {
-            // Convert the matched string into valid JSON array
-            const performersJson = `[${performersMatch}]`;
+            // Clean up the JSON string and parse it
+            const performersJson = `[${performersMatch[1]}]`;
+            console.log('Attempting to parse:', performersJson.substring(0, 500));
+            
             const performersData = JSON.parse(performersJson);
             
             const performers = performersData.map(data => {
-                console.log('Found performer:', data.full_name);
+                console.log('Processing performer data:', data);
                 return {
                     name: data.full_name,
                     stashId: data.links?.StashDB?.split('/').pop() || null
@@ -47,6 +62,7 @@
             return performers;
         } catch (e) {
             console.error('Error parsing performers data:', e);
+            console.error('Error details:', e.message);
             return [];
         }
     }
