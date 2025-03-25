@@ -17,8 +17,8 @@
         // Get the entire page source
         const pageSource = document.documentElement.outerHTML;
         
-        // Find all JSON objects that match our performer pattern
-        const regex = /{[^}]+"full_name":"[^"}]+"}[,\n]/g;
+        // More lenient regex pattern to match performer objects
+        const regex = /{[^{]*?"full_name"\s*:\s*"[^"]+?"[^}]*?}/g;
         const matches = pageSource.match(regex);
 
         if (!matches) {
@@ -33,12 +33,16 @@
                 const cleanJson = jsonStr.replace(/,$/, '');
                 const data = JSON.parse(cleanJson);
                 
+                // Log the found data for debugging
+                console.log('Found performer:', data.full_name);
+                
                 return {
                     name: data.full_name,
                     stashId: data.links?.StashDB?.split('/').pop() || null
                 };
             } catch (e) {
                 console.error('Error parsing performer JSON:', e);
+                console.log('Problematic JSON:', jsonStr);
                 return null;
             }
         }).filter(p => p !== null);
@@ -81,4 +85,5 @@
     }
 
 })();
+
 
