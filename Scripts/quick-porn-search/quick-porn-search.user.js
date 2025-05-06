@@ -263,7 +263,7 @@ function isMobileDevice() {
             if (siteElement) {
                 site = window._currentPattern.siteTransform ?
                     window._currentPattern.siteTransform(siteElement) :
-                    siteElement.textContent.trim();
+                siteElement.textContent.trim().replace(/\s+/g, '');
             }
 
             if (!site) {
