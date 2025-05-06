@@ -224,7 +224,8 @@ function isMobileDevice() {
 
         if (!path || path === '/' || path.includes('/categories') ||
             path.includes('/search') || path.includes('/models') ||
-            path.includes('/channels') || path.includes('/tags')) {
+            path.includes('/channels') || path.includes('/tags') ||
+            path.includes('/performers')) {
             return;
         }
 
