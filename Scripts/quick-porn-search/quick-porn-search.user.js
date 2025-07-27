@@ -1,9 +1,9 @@
 // ==UserScript==
 // @name         Quick Porn Search
 // @namespace    https://github.com/goawaylovestrike/Userscripts/quick-porn-search
-// @description  Adds a dropdown on many porn sites to search various sites either using data found in the html or simply pulling it from the url.
+// @description  Adds a dropdown on many porn sites to search various sites either using data found in the html.
 // @author       GoAwayLoveStrike
-// @version      5.0
+// @version      5.1
 // @updateURL    https://github.com/goawaylovestrike/Userscripts/raw/refs/heads/main/Scripts/quick-porn-search/quick-porn-search.user.js
 // @downloadURL  https://github.com/goawaylovestrike/Userscripts/raw/refs/heads/main/Scripts/quick-porn-search/quick-porn-search.user.js
 // @include https://bangbros.com/*
@@ -224,8 +224,7 @@ function isMobileDevice() {
 
         if (!path || path === '/' || path.includes('/categories') ||
             path.includes('/search') || path.includes('/models') ||
-            path.includes('/channels') || path.includes('/tags') ||
-            path.includes('/performers')) {
+            path.includes('/channels') || path.includes('/tags')) {
             return;
         }
 
@@ -263,7 +262,7 @@ function isMobileDevice() {
             if (siteElement) {
                 site = window._currentPattern.siteTransform ?
                     window._currentPattern.siteTransform(siteElement) :
-                siteElement.textContent.trim().replace(/\s+/g, '');
+                    siteElement.textContent.trim();
             }
 
             if (!site) {
@@ -739,3 +738,7 @@ function isMobileDevice() {
         return null;
     }
 })();
+
+
+
+
