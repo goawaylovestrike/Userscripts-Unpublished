@@ -1,9 +1,9 @@
 // ==UserScript==
 // @name         Quick Porn Search
 // @namespace    https://github.com/goawaylovestrike/Userscripts/quick-porn-search
-// @description  Adds a dropdown on many porn sites to search various sites either using data found in the html.
+// @description  Adds a dropdown on many porn sites to search various sites either found in the html.
 // @author       GoAwayLoveStrike
-// @version      5.1
+// @version      5.3
 // @updateURL    https://github.com/goawaylovestrike/Userscripts/raw/refs/heads/main/Scripts/quick-porn-search/quick-porn-search.user.js
 // @downloadURL  https://github.com/goawaylovestrike/Userscripts/raw/refs/heads/main/Scripts/quick-porn-search/quick-porn-search.user.js
 // @include https://bangbros.com/*
@@ -121,6 +121,8 @@
 // @include https://www.spankmonster.com/*
 // @include https://18lust.com/*
 // @include https://www.lethalhardcore.com/*
+// @include https://www.data18.com/*
+// @include https://www.iafd.com/*
 // ==/UserScript==
 
 // Search button configuration - Edit these to add/remove/modify search options
@@ -152,6 +154,15 @@ const searchButtons = [
         queryTransform: (query) => query.replace(/\s+/g, '-')
     },
     {
+        name: 'Hdporn92',
+        url: 'https://hdporn92.com/?s={query}',
+        // queryTransform: (query) => query.replace(/\s+/g, '+')
+    },
+    {
+        name: 'Porndish',
+        url: 'https://www.porndish.com/?s={query}',
+    },
+    {
         name: 'Porn Horder',
         url: 'https://w15.pornhoarder.tv/search/?search={query}&sort=0&date=0&servers%5B%5D=47&servers%5B%5D=21&servers%5B%5D=40&servers%5B%5D=45&servers%5B%5D=12&servers%5B%5D=35&servers%5B%5D=25&servers%5B%5D=41&servers%5B%5D=44&servers%5B%5D=42&servers%5B%5D=43&servers%5B%5D=29&author=0&page=1'
     }
@@ -176,7 +187,7 @@ function isMobileDevice() {
     let includeTitle = true;
     let includePerformers = true;
     let includeSite = true;
-
+    let excludeMalePerformers = true;
 
     // Initialize with retry mechanism
     console.log('DOM ready state:', document.readyState);
@@ -238,23 +249,75 @@ function isMobileDevice() {
 
             const titleElement = document.querySelector(selectors.title);
             if (titleElement) {
-                title = titleElement.textContent.trim();
+                title = window._currentPattern.titleTransform ?
+                    window._currentPattern.titleTransform(titleElement) :
+                    titleElement.textContent.trim();
             }
 
-            const performerElements = Array.from(document.querySelectorAll(selectors.performers));
-            if (performerElements.length > 0) {
-                if (window._currentPattern && window._currentPattern.name === 'GLORY') {
+            // Special handling for ThePornDB
+            if (window._currentPattern.name === 'THEPORNDB') {
+                const performerElements = Array.from(document.querySelectorAll(selectors.performers));
+                if (performerElements.length > 0) {
                     performers = performerElements
-                        .map(el => {
-                            const text = el.textContent.trim();
-                            const match = text.match(/\((.*?)\)/);
-                            return match ? match[1].trim().replace(/[@\s]/g, '') : '';
+                        .filter(el => {
+                            // Skip male performers if excludeMalePerformers is enabled
+                            if (excludeMalePerformers) {
+                                // Check if this performer has the male icon
+                                const parentCard = el.closest('.relative.group');
+                                if (parentCard) {
+                                    // Look for the male icon (SVG with Mars symbol)
+                                    const maleIcon = parentCard.querySelector('svg.text-blue-400');
+                                    if (maleIcon) {
+                                        console.log(`Filtering out male performer: ${el.textContent.trim()}`);
+                                        return false;
+                                    }
+                                }
+                            }
+                            return true;
                         })
-                        .filter(name => name !== '');
-                } else {
-                    performers = performerElements
                         .map(el => el.textContent.trim())
                         .filter(name => name && name !== '');
+                }
+            } else if (window._currentPattern.name === 'STASHBOX') {
+                const performerElements = Array.from(document.querySelectorAll(selectors.performers));
+                if (performerElements.length > 0) {
+                    performers = performerElements
+                        .filter(el => {
+                            // Skip male performers if excludeMalePerformers is enabled
+                            if (excludeMalePerformers) {
+                                // Check if this performer has the male icon (Mars symbol SVG)
+                                const parentElement = el.closest('.scene-performer');
+                                if (parentElement) {
+                                    // Look for the Mars symbol SVG with title "Male"
+                                    const maleIcon = parentElement.querySelector('svg[data-icon="mars"], svg.fa-mars');
+                                    if (maleIcon) {
+                                        console.log(`Filtering out male performer: ${el.textContent.trim()}`);
+                                        return false;
+                                    }
+                                }
+                            }
+                            return true;
+                        })
+                        .map(el => el.textContent.trim())
+                        .filter(name => name && name !== '');
+                }
+            } else {
+                // Original performer extraction for other sites
+                const performerElements = Array.from(document.querySelectorAll(selectors.performers));
+                if (performerElements.length > 0) {
+                    if (window._currentPattern && window._currentPattern.name === 'GLORY') {
+                        performers = performerElements
+                            .map(el => {
+                                const text = el.textContent.trim();
+                                const match = text.match(/\((.*?)\)/);
+                                return match ? match[1].trim().replace(/[@\s]/g, '') : '';
+                            })
+                            .filter(name => name !== '');
+                    } else {
+                        performers = performerElements
+                            .map(el => el.textContent.trim())
+                            .filter(name => name && name !== '');
+                    }
                 }
             }
 
@@ -282,12 +345,12 @@ function isMobileDevice() {
         }
 
         if (includeSite && site) {
-            parts.push(site.replace(/\((\w+)\)/g, '$1')); // Remove parentheses but keep content
+            parts.push(site.replace(/\((\w+)\)/g, '$1').replace(/[\s']+/g, '')); // Remove parentheses, spaces, and apostrophes
         }
 
         searchterm = parts.join(' ').trim()
-            .replace(/[^\w\s-.!&]/g, ' ')
-            .replace(/\s+/g, ' ');
+            .replace(/[^\w\s-.!&]/g, '') // Remove special characters without replacing with spaces
+            .replace(/\s+/g, ' '); // Normalize spaces
         console.log(`Final searchterm for ${hostname}:`, searchterm);
     }
 
@@ -481,7 +544,8 @@ function isMobileDevice() {
             const options = [
                 { id: 'includePerformers', label: 'Performers', ref: () => includePerformers },
                 { id: 'includeTitle', label: 'Title', ref: () => includeTitle },
-                { id: 'includeSite', label: 'Site', ref: () => includeSite }
+                { id: 'includeSite', label: 'Site', ref: () => includeSite },
+                { id: 'excludeMalePerformers', label: 'No Male Performers', ref: () => excludeMalePerformers }
             ];
 
             options.forEach(option => {
@@ -510,6 +574,9 @@ function isMobileDevice() {
                             break;
                         case 'includeSite':
                             includeSite = checkbox.checked;
+                            break;
+                        case 'excludeMalePerformers':
+                            excludeMalePerformers = checkbox.checked;
                             break;
                     }
                     getsearchterm();
@@ -595,12 +662,12 @@ function isMobileDevice() {
             {
                 name: 'ADULTEMPIRECASH',
                 selectors: {
-                    title: '.video-title, .title-name',
-                    performers: 'span.video-performer-name span.overlay-inner, [data-label="Performer"]',
+                    title: '.video-title',
+                    performers: 'span.video-performer-name span.overlay-inner',
                     site: 'div.studio span:not(.font-weight-bold), meta[property="og:site_name"]'
                 },
-                siteTransform: (el) => el.tagName.toLowerCase() === 'meta' ?
-                    el.getAttribute('content') : el.textContent
+                siteTransform: (el) => (el.tagName.toLowerCase() === 'meta' ?
+                    el.getAttribute('content') : el.textContent).replace(/\s+/g, '')
             },
             {
                 name: 'STASHBOX',
@@ -691,6 +758,34 @@ function isMobileDevice() {
                     title: 'h1.Title',  // More specific selector targeting h1 within the flex container
                     performers: '.ActorThumb-Name-Link'
                 }
+            },
+            {
+                name: 'DATA18',
+                selectors: {
+                    title: '#h1div h1 a',
+                    performers: 'a.bold.gen',
+                    site: 'p b a.bold'
+                }
+            },
+            {
+                name: 'IAFD',
+                selectors: {
+                    title: 'h1',
+                    performers: 'div.castbox a',
+                    site: 'p.bioheading a[href*="/studio.rme"], p.biodata a[href*="/studio.rme"]'
+                },
+                // Custom transform to remove the year in parentheses and apostrophes from the title
+                titleTransform: (titleElement) => {
+                    const titleText = titleElement.textContent.trim();
+                    return titleText
+                        .replace(/\s*\(\d{4}\)$/, '') // Remove year in parentheses at the end
+                        .replace(/'/g, ''); // Remove all apostrophes without adding spaces
+                },
+                // Custom transform to remove the top-level domain from the site name
+                siteTransform: (siteElement) => {
+                    const siteText = siteElement.textContent.trim();
+                    return siteText.replace(/\.[a-z]+$/, ''); // Remove the TLD (.com, .net, etc.)
+                }
             }
         ];
 
@@ -738,7 +833,5 @@ function isMobileDevice() {
         return null;
     }
 })();
-
-
 
 
