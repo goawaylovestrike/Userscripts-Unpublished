@@ -4,7 +4,6 @@
 // @description  Adds a dropdown on many porn sites to search various sites found in the html.
 // @author       GoAwayLoveStrike
 // @version      5.3
-// @updateURL    https://github.com/goawaylovestrike/Userscripts/raw/refs/heads/main/Scripts/quick-porn-search/quick-porn-search.user.js
 // @downloadURL  https://github.com/goawaylovestrike/Userscripts/raw/refs/heads/main/Scripts/quick-porn-search/quick-porn-search.user.js
 // @include https://bangbros.com/*
 // @include https://www.pervmom.com/*
