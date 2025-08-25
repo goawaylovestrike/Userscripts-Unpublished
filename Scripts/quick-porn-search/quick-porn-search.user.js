@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         Quick Porn Search
-// @namespace    https://github.com/goawaylovestrike/Userscripts/quick-porn-search
+// @namespace    https://github.com/goawaylovestrike/Userscripts/tree/main/Scripts/quick-porn-search
 // @description  Adds a dropdown on many porn sites to search various sites found in the html.
 // @author       GoAwayLoveStrike
 // @version      5.3
