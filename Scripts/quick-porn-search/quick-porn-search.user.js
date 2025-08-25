@@ -163,6 +163,10 @@ const searchButtons = [
         url: 'https://www.porndish.com/?s={query}',
     },
     {
+        name: 'Sexuria',
+        url: 'https://sexuria.net/?do=search&subaction=search&search_start=0&full_search=0&story={query}',
+    },
+    {
         name: 'Porn Horder',
         url: 'https://w15.pornhoarder.tv/search/?search={query}&sort=0&date=0&servers%5B%5D=47&servers%5B%5D=21&servers%5B%5D=40&servers%5B%5D=45&servers%5B%5D=12&servers%5B%5D=35&servers%5B%5D=25&servers%5B%5D=41&servers%5B%5D=44&servers%5B%5D=42&servers%5B%5D=43&servers%5B%5D=29&author=0&page=1'
     }
