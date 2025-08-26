@@ -126,279 +126,317 @@
 
 // Search button configuration - Edit these to add/remove/modify search options
 const searchButtons = [
-    {
-        name: '1337x',
-        url: 'https://1337x.to/sort-search/{query}/time/desc/1/'
-    },
-    {
-        name: 'PornoLabs',
-        url: 'https://pornolab.net/forum/tracker.php?max=1&nm={query}'
-    },
-    {
-        name: 'Yandex',
-        url: 'https://yandex.com/search/?text={query}'
-    },
-    {
-        name: 'Custom Google',
-        url: 'https://cse.google.com/cse?cx=4158a1b0ef111426d#gsc.tab=0&gsc.q={query}'
-    },
-    {
-        name: 'Full Porn',
-        url: 'https://www.fullporn.xxx/search/{query}/',
-        queryTransform: (query) => query.replace(/\s+/g, '-') //This replaces all spaces with dashes in the url which is required for some sites.
-    },
-    {
-        name: 'WatchPorn.to',
-        url: 'https://watchporn.to/search/{query}/',
-        queryTransform: (query) => query.replace(/\s+/g, '-')
-    },
-    {
-        name: 'Hdporn92',
-        url: 'https://hdporn92.com/?s={query}',
-        // queryTransform: (query) => query.replace(/\s+/g, '+')
-    },
-    {
-        name: 'Porndish',
-        url: 'https://www.porndish.com/?s={query}',
-    },
-    {
-        name: 'Sexuria',
-        url: 'https://sexuria.net/?do=search&subaction=search&search_start=0&full_search=0&story={query}',
-    },
-    {
-        name: 'Porn Horder',
-        url: 'https://w15.pornhoarder.tv/search/?search={query}&sort=0&date=0&servers%5B%5D=47&servers%5B%5D=21&servers%5B%5D=40&servers%5B%5D=45&servers%5B%5D=12&servers%5B%5D=35&servers%5B%5D=25&servers%5B%5D=41&servers%5B%5D=44&servers%5B%5D=42&servers%5B%5D=43&servers%5B%5D=29&author=0&page=1'
-    }
+	{
+		name: "1337x",
+		url: "https://1337x.to/sort-search/{query}/time/desc/1/",
+	},
+	{
+		name: "PornoLabs",
+		url: "https://pornolab.net/forum/tracker.php?max=1&nm={query}",
+	},
+	{
+		name: "Yandex",
+		url: "https://yandex.com/search/?text={query}",
+	},
+	{
+		name: "Google",
+		url: "https://www.google.com/search?q={query}",
+	},
+	{
+		name: "Full Porn",
+		url: "https://www.fullporn.xxx/search/{query}/",
+		queryTransform: (query) => query.replace(/\s+/g, "-"), //This replaces all spaces with dashes in the url which is required for some sites.
+	},
+	{
+		name: "WatchPorn.to",
+		url: "https://watchporn.to/search/{query}/",
+		queryTransform: (query) => query.replace(/\s+/g, "-"),
+	},
+	{
+		name: "Hdporn92",
+		url: "https://hdporn92.com/?s={query}",
+		// queryTransform: (query) => query.replace(/\s+/g, '+')
+	},
+	{
+		name: "Porndish",
+		url: "https://www.porndish.com/?s={query}",
+	},
+	{
+		name: "Sexuria",
+		url: "https://sexuria.net/?do=search&subaction=search&search_start=0&full_search=0&story={query}",
+	},
+	{
+		name: "Porn Horder",
+		url: "https://w15.pornhoarder.tv/search/?search={query}&sort=0&date=0&servers%5B%5D=47&servers%5B%5D=21&servers%5B%5D=40&servers%5B%5D=45&servers%5B%5D=12&servers%5B%5D=35&servers%5B%5D=25&servers%5B%5D=41&servers%5B%5D=44&servers%5B%5D=42&servers%5B%5D=43&servers%5B%5D=29&author=0&page=1",
+	},
 ];
 
 function isMobileDevice() {
-    return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
-        || window.innerWidth <= 768;
+	return (
+		/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
+			navigator.userAgent
+		) || window.innerWidth <= 768
+	);
 }
 
-(function() {
-    'use strict';
+(function () {
+	"use strict";
 
-    var searchterm = null;
-    let initAttempts = 0;
-    const MAX_ATTEMPTS = 5;
+	var searchterm = null;
+	let initAttempts = 0;
+	const MAX_ATTEMPTS = 5;
 
-    // Remove this line - it's unused
-    // let patternFound = false;
 
-    // These are still needed
-    let includeTitle = true;
-    let includePerformers = true;
-    let includeSite = true;
-    let excludeMalePerformers = true;
 
-    // Initialize with retry mechanism
-    console.log('DOM ready state:', document.readyState);
-    console.log('Current URL:', window.location.href);
-    console.log('Attempt number:', initAttempts + 1, 'of', MAX_ATTEMPTS);
+	let includeTitle = true;
+	let includePerformers = true;
+	let includeSite = true;
+	let excludeMalePerformers = true;
 
-    function initialize() {
-        if (initAttempts >= MAX_ATTEMPTS) {
-            console.log('Failed to initialize after maximum attempts');
-            return;
-        }
+	// Initialize with retry mechanism
+	console.log("DOM ready state:", document.readyState);
+	console.log("Current URL:", window.location.href);
+	console.log("Attempt number:", initAttempts + 1, "of", MAX_ATTEMPTS);
 
-        initAttempts++;
+	function initialize() {
+		if (initAttempts >= MAX_ATTEMPTS) {
+			console.log("Failed to initialize after maximum attempts");
+			return;
+		}
 
-        // First detect the pattern
-        const pattern = detectSitePattern();
+		initAttempts++;
 
-        if (!pattern) {
-            // Remove buttons
-            document.querySelectorAll('.search-button-container').forEach(el => el.remove());
+		// First detect the pattern
+		const pattern = detectSitePattern();
 
-            // Retry after delay if we haven't hit max attempts
-            if (initAttempts < MAX_ATTEMPTS) {
-                setTimeout(initialize, 1000);
-            }
-            return;
-        }
+		if (!pattern) {
+			// Remove buttons
+			document
+				.querySelectorAll(".search-button-container")
+				.forEach((el) => el.remove());
 
-        // Set the current pattern for use by other functions
-        window._currentPattern = pattern;
+			// Retry after delay if we haven't hit max attempts
+			if (initAttempts < MAX_ATTEMPTS) {
+				setTimeout(initialize, 1000);
+			}
+			return;
+		}
 
-        updateSearchButtons();
-    }
+		// Set the current pattern for use by other functions
+		window._currentPattern = pattern;
 
-    function getHostnameSite() {
-        const hostname = window.location.hostname;
-        const parts = hostname.split('.');
-        // Always take the part before the TLD (second-to-last part)
-        return parts[parts.length - 2].toLowerCase();
-    }
+		updateSearchButtons();
+	}
 
-    function getsearchterm() {
-        const hostname = window.location.hostname;
-        const path = window.location.pathname;
+	function getHostnameSite() {
+		const hostname = window.location.hostname;
+		const parts = hostname.split(".");
+		// Always take the part before the TLD (second-to-last part)
+		return parts[parts.length - 2].toLowerCase();
+	}
 
-        if (!path || path === '/' || path.includes('/categories') ||
-            path.includes('/search') || path.includes('/models') ||
-            path.includes('/channels') || path.includes('/tags')) {
-            return;
-        }
+	function getsearchterm() {
+		const hostname = window.location.hostname;
+		const path = window.location.pathname;
 
-        let title = null;
-        let performers = [];
-        let site = null;
-        searchterm = null;
+		if (
+			!path ||
+			path === "/" ||
+			path.includes("/categories") ||
+			path.includes("/search") ||
+			path.includes("/models") ||
+			path.includes("/channels") ||
+			path.includes("/tags")
+		) {
+			return;
+		}
 
-        if (window._currentPattern) {
-            const { selectors } = window._currentPattern;
+		let title = null;
+		let performers = [];
+		let site = null;
+		searchterm = null;
 
-            const titleElement = document.querySelector(selectors.title);
-            if (titleElement) {
-                title = window._currentPattern.titleTransform ?
-                    window._currentPattern.titleTransform(titleElement) :
-                    titleElement.textContent.trim();
-            }
+		if (window._currentPattern) {
+			const { selectors } = window._currentPattern;
 
-            // Special handling for ThePornDB
-            if (window._currentPattern.name === 'THEPORNDB') {
-                const performerElements = Array.from(document.querySelectorAll(selectors.performers));
-                if (performerElements.length > 0) {
-                    performers = performerElements
-                        .filter(el => {
-                            // Skip male performers if excludeMalePerformers is enabled
-                            if (excludeMalePerformers) {
-                                // Check if this performer has the male icon
-                                const parentCard = el.closest('.relative.group');
-                                if (parentCard) {
-                                    // Look for the male icon (SVG with Mars symbol)
-                                    const maleIcon = parentCard.querySelector('svg.text-blue-400');
-                                    if (maleIcon) {
-                                        console.log(`Filtering out male performer: ${el.textContent.trim()}`);
-                                        return false;
-                                    }
-                                }
-                            }
-                            return true;
-                        })
-                        .map(el => el.textContent.trim())
-                        .filter(name => name && name !== '');
-                }
-            } else if (window._currentPattern.name === 'STASHBOX') {
-                const performerElements = Array.from(document.querySelectorAll(selectors.performers));
-                if (performerElements.length > 0) {
-                    performers = performerElements
-                        .filter(el => {
-                            // Skip male performers if excludeMalePerformers is enabled
-                            if (excludeMalePerformers) {
-                                // Check if this performer has the male icon (Mars symbol SVG)
-                                const parentElement = el.closest('.scene-performer');
-                                if (parentElement) {
-                                    // Look for the Mars symbol SVG with title "Male"
-                                    const maleIcon = parentElement.querySelector('svg[data-icon="mars"], svg.fa-mars');
-                                    if (maleIcon) {
-                                        console.log(`Filtering out male performer: ${el.textContent.trim()}`);
-                                        return false;
-                                    }
-                                }
-                            }
-                            return true;
-                        })
-                        .map(el => el.textContent.trim())
-                        .filter(name => name && name !== '');
-                }
-            } else {
-                // Original performer extraction for other sites
-                const performerElements = Array.from(document.querySelectorAll(selectors.performers));
-                if (performerElements.length > 0) {
-                    if (window._currentPattern && window._currentPattern.name === 'GLORY') {
-                        performers = performerElements
-                            .map(el => {
-                                const text = el.textContent.trim();
-                                const match = text.match(/\((.*?)\)/);
-                                return match ? match[1].trim().replace(/[@\s]/g, '') : '';
-                            })
-                            .filter(name => name !== '');
-                    } else {
-                        performers = performerElements
-                            .map(el => el.textContent.trim())
-                            .filter(name => name && name !== '');
-                    }
-                }
-            }
+			const titleElement = document.querySelector(selectors.title);
+			if (titleElement) {
+				title = window._currentPattern.titleTransform
+					? window._currentPattern.titleTransform(titleElement)
+					: titleElement.textContent.trim();
+			}
 
-            const siteElement = document.querySelector(selectors.site);
-            if (siteElement) {
-                site = window._currentPattern.siteTransform ?
-                    window._currentPattern.siteTransform(siteElement) :
-                    siteElement.textContent.trim();
-            }
+			// Special handling for ThePornDB
+			if (window._currentPattern.name === "THEPORNDB") {
+				const performerElements = Array.from(
+					document.querySelectorAll(selectors.performers)
+				);
+				if (performerElements.length > 0) {
+					performers = performerElements
+						.filter((el) => {
+							// Skip male performers if excludeMalePerformers is enabled
+							if (excludeMalePerformers) {
+								// Check if this performer has the male icon
+								const parentCard =
+									el.closest(".relative.group");
+								if (parentCard) {
+									// Look for the male icon (SVG with Mars symbol)
+									const maleIcon =
+										parentCard.querySelector(
+											"svg.text-blue-400"
+										);
+									if (maleIcon) {
+										console.log(
+											`Filtering out male performer: ${el.textContent.trim()}`
+										);
+										return false;
+									}
+								}
+							}
+							return true;
+						})
+						.map((el) => el.textContent.trim())
+						.filter((name) => name && name !== "");
+				}
+			} else if (window._currentPattern.name === "STASHBOX") {
+				const performerElements = Array.from(
+					document.querySelectorAll(selectors.performers)
+				);
+				if (performerElements.length > 0) {
+					performers = performerElements
+						.filter((el) => {
+							// Skip male performers if excludeMalePerformers is enabled
+							if (excludeMalePerformers) {
+								// Check if this performer has the male icon (Mars symbol SVG)
+								const parentElement =
+									el.closest(".scene-performer");
+								if (parentElement) {
+									// Look for the Mars symbol SVG with title "Male"
+									const maleIcon =
+										parentElement.querySelector(
+											'svg[data-icon="mars"], svg.fa-mars'
+										);
+									if (maleIcon) {
+										console.log(
+											`Filtering out male performer: ${el.textContent.trim()}`
+										);
+										return false;
+									}
+								}
+							}
+							return true;
+						})
+						.map((el) => el.textContent.trim())
+						.filter((name) => name && name !== "");
+				}
+			} else {
+				// Original performer extraction for other sites
+				const performerElements = Array.from(
+					document.querySelectorAll(selectors.performers)
+				);
+				if (performerElements.length > 0) {
+					if (
+						window._currentPattern &&
+						window._currentPattern.name === "GLORY"
+					) {
+						performers = performerElements
+							.map((el) => {
+								const text = el.textContent.trim();
+								const match = text.match(/\((.*?)\)/);
+								return match
+									? match[1].trim().replace(/[@\s]/g, "")
+									: "";
+							})
+							.filter((name) => name !== "");
+					} else {
+						performers = performerElements
+							.map((el) => el.textContent.trim())
+							.filter((name) => name && name !== "");
+					}
+				}
+			}
 
-            if (!site) {
-                site = getHostnameSite();
-            }
-        }
+			const siteElement = document.querySelector(selectors.site);
+			if (siteElement) {
+				site = window._currentPattern.siteTransform
+					? window._currentPattern.siteTransform(siteElement)
+					: siteElement.textContent.trim();
+			}
 
-        // Build searchterm based on checkbox preferences
-        const parts = [];
+			if (!site) {
+				site = getHostnameSite();
+			}
+		}
 
-        if (includePerformers && performers.length > 0) {
-            parts.push(performers.join(' '));
-        }
+		// Build searchterm based on checkbox preferences
+		const parts = [];
 
-        if (includeTitle && title) {
-            parts.push(title);
-        }
+		if (includePerformers && performers.length > 0) {
+			parts.push(performers.join(" "));
+		}
 
-        if (includeSite && site) {
-            parts.push(site.replace(/\((\w+)\)/g, '$1').replace(/[\s']+/g, '')); // Remove parentheses, spaces, and apostrophes
-        }
+		if (includeTitle && title) {
+			parts.push(title);
+		}
 
-        searchterm = parts.join(' ').trim()
-            .replace(/[^\w\s-.!&]/g, '') // Remove special characters without replacing with spaces
-            .replace(/\s+/g, ' '); // Normalize spaces
-        console.log(`Final searchterm for ${hostname}:`, searchterm);
-    }
+		if (includeSite && site) {
+			parts.push(site.replace(/\((\w+)\)/g, "$1").replace(/[\s']+/g, "")); // Remove parentheses, spaces, and apostrophes
+		}
 
-    function updateSearchLinks() {
-        // Get all existing links in the dropdown
-        const links = document.querySelectorAll('.search-button-container a');
+		searchterm = parts
+			.join(" ")
+			.trim()
+			.replace(/[^\w\s-.!&]/g, "") // Remove special characters without replacing with spaces
+			.replace(/\s+/g, " "); // Normalize spaces
+		console.log(`Final searchterm for ${hostname}:`, searchterm);
+	}
 
-        // Update each link's href with the new searchterm
-        links.forEach(link => {
-            const buttonName = link.textContent.trim();
-            const button = searchButtons.find(b => b.name === buttonName);
-            if (button) {
-                const query = button.queryTransform ?
-                    button.queryTransform(searchterm) :
-                    encodeURIComponent(searchterm);
-                link.href = button.url.replace('{query}', query);
-            }
-        });
-    }
+	function updateSearchLinks() {
+		// Get all existing links in the dropdown
+		const links = document.querySelectorAll(".search-button-container a");
 
-    function updateSearchButtons() {
-        // Remove the pattern check since it's already done in initialize()
-        getsearchterm();
+		// Update each link's href with the new searchterm
+		links.forEach((link) => {
+			const buttonName = link.textContent.trim();
+			const button = searchButtons.find((b) => b.name === buttonName);
+			if (button) {
+				const query = button.queryTransform
+					? button.queryTransform(searchterm)
+					: encodeURIComponent(searchterm);
+				link.href = button.url.replace("{query}", query);
+			}
+		});
+	}
 
-        // Only create dropdown if we have a valid searchterm
-        if (searchterm && searchterm.length > 0) {
-            const dropdownContainer = document.createElement('div');
-            dropdownContainer.className = 'search-button-container';
+	function updateSearchButtons() {
+		// Remove the pattern check since it's already done in initialize()
+		getsearchterm();
 
-            // Adjust container position based on device
-            const isMobile = isMobileDevice();
-            dropdownContainer.style.cssText = `
+		// Only create dropdown if we have a valid searchterm
+		if (searchterm && searchterm.length > 0) {
+			const dropdownContainer = document.createElement("div");
+			dropdownContainer.className = "search-button-container";
+
+			// Adjust container position based on device
+			const isMobile = isMobileDevice();
+			dropdownContainer.style.cssText = `
                 position: fixed !important;
-                ${isMobile ? 'left: 5px !important; top: 10px !important;' : 'left: 15px !important; top: 80px !important;'}
+                ${
+					isMobile
+						? "left: 5px !important; top: 10px !important;"
+						: "left: 15px !important; top: 80px !important;"
+				}
                 z-index: 2147483647 !important;
                 pointer-events: auto !important;
                 visibility: visible !important;
                 opacity: 1 !important;
             `;
 
-            // Create the dropdown button
-            const dropdownButton = document.createElement('button');
-            if (isMobile) {
-                dropdownButton.textContent = '🔍';
-                dropdownButton.style.cssText = `
+			// Create the dropdown button
+			const dropdownButton = document.createElement("button");
+			if (isMobile) {
+				dropdownButton.textContent = "🔍";
+				dropdownButton.style.cssText = `
                     background: #ffffff !important;
                     color: #000000 !important;
                     font-family: Arial, sans-serif !important;
@@ -415,9 +453,9 @@ function isMobileDevice() {
                     justify-content: center !important;
                     box-shadow: 0 4px 8px rgba(0,0,0,0.3) !important;
                 `;
-            } else {
-                dropdownButton.textContent = '🔍 Search';
-                dropdownButton.style.cssText = `
+			} else {
+				dropdownButton.textContent = "🔍 Search";
+				dropdownButton.style.cssText = `
                     background: #ffffff !important;
                     color: #000000 !important;
                     font-family: Arial, sans-serif !important;
@@ -430,33 +468,33 @@ function isMobileDevice() {
                     min-width: 140px !important;
                     box-shadow: 0 4px 8px rgba(0,0,0,0.3) !important;
                 `;
-            }
+			}
 
-            // Create the dropdown content
-            const dropdownContent = document.createElement('div');
-            dropdownContent.style.cssText = `
+			// Create the dropdown content
+			const dropdownContent = document.createElement("div");
+			dropdownContent.style.cssText = `
                 display: none;
                 position: absolute !important;
                 background-color: #ffffff !important;
-                min-width: ${isMobile ? '200px' : '140px'} !important;
+                min-width: ${isMobile ? "200px" : "140px"} !important;
                 box-shadow: 0 4px 8px rgba(0,0,0,0.3) !important;
                 border-radius: 7px !important;
                 margin-top: 5px !important;
                 border: 2px solid #000000 !important;
                 overflow: hidden !important;
-                ${isMobile ? 'left: 0 !important;' : ''}
+                ${isMobile ? "left: 0 !important;" : ""}
             `;
 
-            searchButtons.forEach(button => {
-                const link = document.createElement('a');
-                link.id = button.name;
+			searchButtons.forEach((button) => {
+				const link = document.createElement("a");
+				link.id = button.name;
 
-                // Create favicon image
-                const favicon = document.createElement('img');
-                const urlObj = new URL(button.url);
-                const domain = urlObj.hostname.split('.').slice(-2).join('.');
-                favicon.src = `${urlObj.protocol}//${domain}/favicon.ico`;
-                favicon.style.cssText = `
+				// Create favicon image
+				const favicon = document.createElement("img");
+				const urlObj = new URL(button.url);
+				const domain = urlObj.hostname.split(".").slice(-2).join(".");
+				favicon.src = `${urlObj.protocol}//${domain}/favicon.ico`;
+				favicon.style.cssText = `
                     width: 16px !important;
                     height: 16px !important;
                     margin-right: 8px !important;
@@ -464,9 +502,9 @@ function isMobileDevice() {
                     filter: drop-shadow(0 1px 1px rgba(0,0,0,0.2)) !important;
                 `;
 
-                const textSpan = document.createElement('span');
-                textSpan.textContent = button.name;
-                textSpan.style.cssText = `
+				const textSpan = document.createElement("span");
+				textSpan.textContent = button.name;
+				textSpan.style.cssText = `
                     vertical-align: middle !important;
                     font-weight: bold !important;
                     color: #000000 !important;
@@ -475,12 +513,12 @@ function isMobileDevice() {
                     line-height: normal !important;
                 `;
 
-                const query = button.queryTransform ?
-                    button.queryTransform(searchterm) :
-                    encodeURIComponent(searchterm);
-                link.href = button.url.replace('{query}', query);
-                link.target = '_blank';
-                link.style.cssText = `
+				const query = button.queryTransform
+					? button.queryTransform(searchterm)
+					: encodeURIComponent(searchterm);
+				link.href = button.url.replace("{query}", query);
+				link.target = "_blank";
+				link.style.cssText = `
                     color: #000000 !important;
                     background: white !important;
                     padding: 10px 10px !important;
@@ -497,7 +535,7 @@ function isMobileDevice() {
                     height: auto !important;
                 `;
 
-                textSpan.style.cssText = `
+				textSpan.style.cssText = `
                     vertical-align: middle !important;
                     font-weight: bold !important;
                     color: #000000 !important;
@@ -505,9 +543,9 @@ function isMobileDevice() {
                     line-height: normal !important;
                 `;
 
-                const container = document.createElement('div');
-                container.className = 'search-button-container';
-                container.style.cssText = `
+				const container = document.createElement("div");
+				container.className = "search-button-container";
+				container.style.cssText = `
                     position: fixed !important;
                     top: 10px !important;
                     right: 10px !important;
@@ -520,321 +558,356 @@ function isMobileDevice() {
                     min-width: 200px !important;
                 `;
 
-                link.onmouseover = function() {
-                    this.style.backgroundColor = '#f1f1f1 !important';
-                };
-                link.onmouseout = function() {
-                    this.style.backgroundColor = '#ffffff !important';
-                };
+				link.onmouseover = function () {
+					this.style.backgroundColor = "#f1f1f1 !important";
+				};
+				link.onmouseout = function () {
+					this.style.backgroundColor = "#ffffff !important";
+				};
 
-                link.appendChild(favicon);
-                link.appendChild(textSpan);
-                dropdownContent.appendChild(link);
-            });
+				link.appendChild(favicon);
+				link.appendChild(textSpan);
+				dropdownContent.appendChild(link);
+			});
 
-            const separator = document.createElement('div');
-            separator.style.cssText = `
+			const separator = document.createElement("div");
+			separator.style.cssText = `
                 border-top: 2px solid #eee !important;
                 margin-top: 5px !important;
             `;
-            dropdownContent.appendChild(separator);
+			dropdownContent.appendChild(separator);
 
-            const controlsDiv = document.createElement('div');
-            controlsDiv.style.borderBottom = '1px solid #ddd';
-            controlsDiv.style.marginBottom = '10px';
-            controlsDiv.style.paddingBottom = '10px';
+			const controlsDiv = document.createElement("div");
+			controlsDiv.style.borderBottom = "1px solid #ddd";
+			controlsDiv.style.marginBottom = "10px";
+			controlsDiv.style.paddingBottom = "10px";
 
-            const options = [
-                { id: 'includePerformers', label: 'Performers', ref: () => includePerformers },
-                { id: 'includeTitle', label: 'Title', ref: () => includeTitle },
-                { id: 'includeSite', label: 'Site', ref: () => includeSite },
-                { id: 'excludeMalePerformers', label: 'No Male Performers', ref: () => excludeMalePerformers }
-            ];
+			const options = [
+				{
+					id: "includePerformers",
+					label: "Performers",
+					ref: () => includePerformers,
+				},
+				{ id: "includeTitle", label: "Title", ref: () => includeTitle },
+				{ id: "includeSite", label: "Site", ref: () => includeSite },
+				{
+					id: "excludeMalePerformers",
+					label: "No Male Performers",
+					ref: () => excludeMalePerformers,
+				},
+			];
 
-            options.forEach(option => {
-                const div = document.createElement('div');
-                div.style.marginBottom = '5px';
+			options.forEach((option) => {
+				const div = document.createElement("div");
+				div.style.marginBottom = "5px";
 
-                const checkbox = document.createElement('input');
-                checkbox.type = 'checkbox';
-                checkbox.id = option.id;
-                checkbox.checked = option.ref();
-                checkbox.style.cssText = `
+				const checkbox = document.createElement("input");
+				checkbox.type = "checkbox";
+				checkbox.id = option.id;
+				checkbox.checked = option.ref();
+				checkbox.style.cssText = `
                     margin-right: 5px !important;
                     cursor: pointer !important;
                 `;
 
-                // Single consolidated event listener
-                checkbox.addEventListener('change', (e) => {
-                    e.stopPropagation();
-                    console.log(`Checkbox ${option.id} changed to ${checkbox.checked}`); // Debug log
-                    switch(option.id) {
-                        case 'includePerformers':
-                            includePerformers = checkbox.checked;
-                            break;
-                        case 'includeTitle':
-                            includeTitle = checkbox.checked;
-                            break;
-                        case 'includeSite':
-                            includeSite = checkbox.checked;
-                            break;
-                        case 'excludeMalePerformers':
-                            excludeMalePerformers = checkbox.checked;
-                            break;
-                    }
-                    getsearchterm();
-                    updateSearchLinks();
-                    console.log('Updated searchterm:', searchterm); // Debug log
-                });
+				// Single consolidated event listener
+				checkbox.addEventListener("change", (e) => {
+					e.stopPropagation();
+					console.log(
+						`Checkbox ${option.id} changed to ${checkbox.checked}`
+					); // Debug log
+					switch (option.id) {
+						case "includePerformers":
+							includePerformers = checkbox.checked;
+							break;
+						case "includeTitle":
+							includeTitle = checkbox.checked;
+							break;
+						case "includeSite":
+							includeSite = checkbox.checked;
+							break;
+						case "excludeMalePerformers":
+							excludeMalePerformers = checkbox.checked;
+							break;
+					}
+					getsearchterm();
+					updateSearchLinks();
+					console.log("Updated searchterm:", searchterm); // Debug log
+				});
 
-                const label = document.createElement('label');
-                label.htmlFor = option.id;
-                label.textContent = option.label;
-                label.style.cssText = `
+				const label = document.createElement("label");
+				label.htmlFor = option.id;
+				label.textContent = option.label;
+				label.style.cssText = `
                     font-family: Arial, sans-serif !important;
                     font-size: 12px !important;
                     color: black !important;
                     cursor: pointer !important;
                 `;
 
-                div.appendChild(checkbox);
-                div.appendChild(label);
-                controlsDiv.appendChild(div);
-            });
+				div.appendChild(checkbox);
+				div.appendChild(label);
+				controlsDiv.appendChild(div);
+			});
 
-            dropdownContent.appendChild(controlsDiv);
+			dropdownContent.appendChild(controlsDiv);
 
-            // Toggle dropdown on click
-            dropdownButton.onclick = function(e) {
-                e.stopPropagation();
-                dropdownContent.style.display = dropdownContent.style.display === 'none' ? 'block' : 'none';
-            };
+			// Toggle dropdown on click
+			dropdownButton.onclick = function (e) {
+				e.stopPropagation();
+				dropdownContent.style.display =
+					dropdownContent.style.display === "none" ? "block" : "none";
+			};
 
-            dropdownContainer.appendChild(dropdownButton);
-            dropdownContainer.appendChild(dropdownContent);
+			dropdownContainer.appendChild(dropdownButton);
+			dropdownContainer.appendChild(dropdownContent);
 
-            if (document.body) {
-                document.body.appendChild(dropdownContainer);
-                console.log('Dropdown created with searchterm:', searchterm);
-            }
-        }
-    }
+			if (document.body) {
+				document.body.appendChild(dropdownContainer);
+				console.log("Dropdown created with searchterm:", searchterm);
+			}
+		}
+	}
 
-    initialize();
+	initialize();
 
-    // Watch for URL changes
-    let lastUrl = location.href;
-    const observer = new MutationObserver(() => {
-        const url = location.href;
-        if (url !== lastUrl) {
-            lastUrl = url;
-            // Immediately remove the button
-            document.querySelectorAll('.search-button-container').forEach(el => el.remove());
-            // Reset attempts and try to initialize with new page
-            initAttempts = 0;
-            setTimeout(initialize, 1000);
-        }
-    });
+	// Watch for URL changes
+	let lastUrl = location.href;
+	const observer = new MutationObserver(() => {
+		const url = location.href;
+		if (url !== lastUrl) {
+			lastUrl = url;
+			// Immediately remove the button
+			document
+				.querySelectorAll(".search-button-container")
+				.forEach((el) => el.remove());
+			// Reset attempts and try to initialize with new page
+			initAttempts = 0;
+			setTimeout(initialize, 1000);
+		}
+	});
 
-    observer.observe(document.body || document, {
-        subtree: true,
-        childList: true
-    });
+	observer.observe(document.body || document, {
+		subtree: true,
+		childList: true,
+	});
 
-    function detectSitePattern() {
-        const hostname = window.location.hostname;
+	function detectSitePattern() {
+		const hostname = window.location.hostname;
 
-        // Define common selectors to test
-        const commonPatterns = [
-            {
-                name: 'TEAMSKEET',
-                selectors: {
-                    title: '.sceneTitle',
-                    performers: '.contentTitle .model-name-link',
-                    site: '.siteName'
-                }
-            },
-            {
-                name: 'NAUGHTYAMERICA',
-                selectors: {
-                    title: 'h1.scene-title',
-                    performers: '.performer-list',
-                    site: '.site-title'
-                }
-            },
-            {
-                name: 'ADULTEMPIRECASH',
-                selectors: {
-                    title: '.video-title',
-                    performers: 'span.video-performer-name span.overlay-inner',
-                    site: 'div.studio span:not(.font-weight-bold), meta[property="og:site_name"]'
-                },
-                siteTransform: (el) => (el.tagName.toLowerCase() === 'meta' ?
-                    el.getAttribute('content') : el.textContent).replace(/\s+/g, '')
-            },
-            {
-                name: 'STASHBOX',
-                selectors: {
-                    title: '.card-header h3 span',
-                    performers: '.scene-performer span',
-                    site: 'a[href^="/studios/"]'
-                }
-            },
-            {
-                name: 'AYLO',
-                selectors: {
-                    title: 'h2.sc-wxt7nk-4, h2.sc-1b6bgon-3, h1.sc-1b6bgon-3',
-                    performers: 'a[href^="/pornstar/"][class^="sc-"], a[href^="/model/"][class^="sc-"]',
-                    site: '.sc-vdkjux-5'
-                }
-            },
-            {
-                name: 'PORNPROS',
-                selectors: {
-                    title: 'div[id="trailer_player"] .scene-info h1',
-                    performers: '.scene-info .link-list-with-commas a'
-                }
-            },
-            {
-                name: 'BANG',
-                selectors: {
-                    title: '[data-controller="video-entry"] div.flex.mb-6',  // More specific selector targeting h1 within the flex container
-                    performers: 'div.w-full .leading-6 a[href^="/pornstar/"]'
-                }
-            },
-            {
-                name: 'VIXEN',
-                selectors: {
-                    title: '[data-test-component="VideoTitle"]',  // More specific selector targeting h1 within the flex container
-                    performers: '[data-test-component="VideoModels"] a[href^="/performers/"]'
-                }
-            },
-            {
-                name: 'NUBILES',
-                selectors: {
-                    title: 'div.row.content-pane-container .content-pane-title h2',  // More specific selector targeting h1 within the flex container
-                    performers: '.content-pane-performer.model',
-                    site: '.row.content-pane-container .site-link'
-                }
-            },
-            {
-                name: 'THEPORNDB',
-                selectors: {
-                    title: '.justify-between h2.text-3xl',  // More specific selector targeting h1 within the flex container
-                    performers: 'div.px-3.py-1.text-center h2.text-xl a[title]',
-                    site: 'a[href^="/sites/"]'
-                }
-            },
-            {
-                name: 'MANYVIDS',
-                selectors: {
-                    title: '.VideoMetaInfo_title__mWRak',  // More specific selector targeting h1 within the flex container
-                    performers: '.VideoProfileCard_actions__x_NEr',
-                    site: 'a[href^="/sites/"]'
-                }
-            },
-            {
-                name: 'ADULTDVDEMPIRE',
-                selectors: {
-                    title: '.movie-page__heading__title',  // More specific selector targeting h1 within the flex container
-                    performers: '[label="Performer"]',
-                    site: '[label="Studio"]'
-                }
-            },
-            {
-                name: 'GLORYHOLESWALLOW',
-                selectors: {
-                    title: 'div.memberVideoPics div.objectInfo h1',
-                    performers: 'div.content p'
-                }
-            },
-            {
-                name: 'STICKYDOLLARS',
-                selectors: {
-                    title: 'h1.title',  // More specific selector targeting h1 within the flex container
-                    performers: 'h2.models a[href^="/models/"]'
-                }
-            },
-            {
-                name: 'GLORYHOLESECRETS',
-                selectors: {
-                    title: 'h1.Title',  // More specific selector targeting h1 within the flex container
-                    performers: '.ActorThumb-Name-Link'
-                }
-            },
-            {
-                name: 'DATA18',
-                selectors: {
-                    title: '#h1div h1 a',
-                    performers: 'a.bold.gen',
-                    site: 'p b a.bold'
-                }
-            },
-            {
-                name: 'IAFD',
-                selectors: {
-                    title: 'h1',
-                    performers: 'div.castbox a',
-                    site: 'p.bioheading a[href*="/studio.rme"], p.biodata a[href*="/studio.rme"]'
-                },
-                // Custom transform to remove the year in parentheses and apostrophes from the title
-                titleTransform: (titleElement) => {
-                    const titleText = titleElement.textContent.trim();
-                    return titleText
-                        .replace(/\s*\(\d{4}\)$/, '') // Remove year in parentheses at the end
-                        .replace(/'/g, ''); // Remove all apostrophes without adding spaces
-                },
-                // Custom transform to remove the top-level domain from the site name
-                siteTransform: (siteElement) => {
-                    const siteText = siteElement.textContent.trim();
-                    return siteText.replace(/\.[a-z]+$/, ''); // Remove the TLD (.com, .net, etc.)
-                }
-            }
-        ];
+		// Define common selectors to test
+		const commonPatterns = [
+			{
+				name: "TEAMSKEET",
+				selectors: {
+					title: ".sceneTitle",
+					performers: ".contentTitle .model-name-link",
+					site: ".siteName",
+				},
+			},
+			{
+				name: "NAUGHTYAMERICA",
+				selectors: {
+					title: "h1.scene-title",
+					performers: ".performer-list",
+					site: ".site-title",
+				},
+			},
+			{
+				name: "ADULTEMPIRECASH",
+				selectors: {
+					title: ".video-title",
+					performers: "span.video-performer-name span.overlay-inner",
+					site: 'div.studio span:not(.font-weight-bold), meta[property="og:site_name"]',
+				},
+				siteTransform: (el) =>
+					(el.tagName.toLowerCase() === "meta"
+						? el.getAttribute("content")
+						: el.textContent
+					).replace(/\s+/g, ""),
+			},
+			{
+				name: "STASHBOX",
+				selectors: {
+					title: ".card-header h3 span",
+					performers: ".scene-performer span",
+					site: 'a[href^="/studios/"]',
+				},
+			},
+			{
+				name: "AYLO",
+				selectors: {
+					title: "h2.sc-wxt7nk-4, h2.sc-1b6bgon-3, h1.sc-1b6bgon-3",
+					performers:
+						'a[href^="/pornstar/"][class^="sc-"], a[href^="/model/"][class^="sc-"]',
+					site: ".sc-vdkjux-5",
+				},
+			},
+			{
+				name: "PORNPROS",
+				selectors: {
+					title: 'div[id="trailer_player"] .scene-info h1',
+					performers: ".scene-info .link-list-with-commas a",
+				},
+			},
+			{
+				name: "BANG",
+				selectors: {
+					title: '[data-controller="video-entry"] div.flex.mb-6', // More specific selector targeting h1 within the flex container
+					performers: 'div.w-full .leading-6 a[href^="/pornstar/"]',
+				},
+			},
+			{
+				name: "VIXEN",
+				selectors: {
+					title: '[data-test-component="VideoTitle"]', // More specific selector targeting h1 within the flex container
+					performers:
+						'[data-test-component="VideoModels"] a[href^="/performers/"]',
+				},
+			},
+			{
+				name: "NUBILES",
+				selectors: {
+					title: "div.row.content-pane-container .content-pane-title h2", // More specific selector targeting h1 within the flex container
+					performers: ".content-pane-performer.model",
+					site: ".row.content-pane-container .site-link",
+				},
+			},
+			{
+				name: "THEPORNDB",
+				selectors: {
+					title: ".justify-between h2.text-3xl", // More specific selector targeting h1 within the flex container
+					performers: "div.px-3.py-1.text-center h2.text-xl a[title]",
+					site: 'a[href^="/sites/"]',
+				},
+			},
+			{
+				name: "MANYVIDS",
+				selectors: {
+					title: ".VideoMetaInfo_title__mWRak", // More specific selector targeting h1 within the flex container
+					performers: ".VideoProfileCard_actions__x_NEr",
+					site: 'a[href^="/sites/"]',
+				},
+			},
+			{
+				name: "ADULTDVDEMPIRE",
+				selectors: {
+					title: ".movie-page__heading__title", // More specific selector targeting h1 within the flex container
+					performers: '[label="Performer"]',
+					site: '[label="Studio"]',
+				},
+			},
+			{
+				name: "GLORYHOLESWALLOW",
+				selectors: {
+					title: "div.memberVideoPics div.objectInfo h1",
+					performers: "div.content p",
+				},
+			},
+			{
+				name: "STICKYDOLLARS",
+				selectors: {
+					title: "h1.title", // More specific selector targeting h1 within the flex container
+					performers: 'h2.models a[href^="/models/"]',
+				},
+			},
+			{
+				name: "GLORYHOLESECRETS",
+				selectors: {
+					title: "h1.Title", // More specific selector targeting h1 within the flex container
+					performers: ".ActorThumb-Name-Link",
+				},
+			},
+			{
+				name: "DATA18",
+				selectors: {
+					title: "#h1div h1 a",
+					performers: "a.bold.gen",
+					site: "p b a.bold",
+				},
+			},
+			{
+				name: "IAFD",
+				selectors: {
+					title: "h1",
+					performers: "div.castbox a",
+					site: 'p.bioheading a[href*="/studio.rme"], p.biodata a[href*="/studio.rme"]',
+				},
+				// Custom transform to remove the year in parentheses and apostrophes from the title
+				titleTransform: (titleElement) => {
+					const titleText = titleElement.textContent.trim();
+					return titleText
+						.replace(/\s*\(\d{4}\)$/, "") // Remove year in parentheses at the end
+						.replace(/'/g, ""); // Remove all apostrophes without adding spaces
+				},
+				// Custom transform to remove the top-level domain from the site name
+				siteTransform: (siteElement) => {
+					const siteText = siteElement.textContent.trim();
+					return siteText.replace(/\.[a-z]+$/, ""); // Remove the TLD (.com, .net, etc.)
+				},
+			},
+		];
 
-        console.log(`[Pattern Detector] ⚡ Starting pattern detection for: ${hostname}`);
+		console.log(
+			`[Pattern Detector] ⚡ Starting pattern detection for: ${hostname}`
+		);
 
-        // Find matching patterns
-        const matchingPattern = commonPatterns.find(pattern => {
-            const { selectors } = pattern;
-            let matches = 0;
+		// Find matching patterns
+		const matchingPattern = commonPatterns.find((pattern) => {
+			const { selectors } = pattern;
+			let matches = 0;
 
-            for (const [key, selector] of Object.entries(selectors)) {
-                const elements = document.querySelectorAll(selector);
-                if (elements && elements.length > 0) {
-                    matches++;
-                    console.log(`[Pattern Detector] Found ${elements.length} matches for ${key} using selector: ${selector}`);
+			for (const [key, selector] of Object.entries(selectors)) {
+				const elements = document.querySelectorAll(selector);
+				if (elements && elements.length > 0) {
+					matches++;
+					console.log(
+						`[Pattern Detector] Found ${elements.length} matches for ${key} using selector: ${selector}`
+					);
 
-                    // Log the actual site name if we're checking the site selector
-                    if (key === 'site') {
-                        console.log(`[Pattern Detector] Site name found: "${elements[0].textContent.trim()}"`);
-                    }
-                }
-            }
-            return matches >= 2;
-        });
+					// Log the actual site name if we're checking the site selector
+					if (key === "site") {
+						console.log(
+							`[Pattern Detector] Site name found: "${elements[0].textContent.trim()}"`
+						);
+					}
+				}
+			}
+			return matches >= 2;
+		});
 
-        if (matchingPattern) {
-            console.log(`[Pattern Detector] Found matching pattern: ${matchingPattern.name}`, matchingPattern);
-            window._currentPattern = matchingPattern;
+		if (matchingPattern) {
+			console.log(
+				`[Pattern Detector] Found matching pattern: ${matchingPattern.name}`,
+				matchingPattern
+			);
+			window._currentPattern = matchingPattern;
 
-            // Immediately try to extract data using the pattern
-            const titleElement = document.querySelector(matchingPattern.selectors.title);
-            const performerElements = document.querySelectorAll(matchingPattern.selectors.performers);
-            const siteElement = document.querySelector(matchingPattern.selectors.site);
+			// Immediately try to extract data using the pattern
+			const titleElement = document.querySelector(
+				matchingPattern.selectors.title
+			);
+			const performerElements = document.querySelectorAll(
+				matchingPattern.selectors.performers
+			);
+			const siteElement = document.querySelector(
+				matchingPattern.selectors.site
+			);
 
-            console.log('[Pattern Detector] Extracted data:', {
-                title: titleElement?.textContent.trim(),
-                performers: Array.from(performerElements).map(el => el.textContent.trim()),
-                site: siteElement?.textContent.trim()
-            });
+			console.log("[Pattern Detector] Extracted data:", {
+				title: titleElement?.textContent.trim(),
+				performers: Array.from(performerElements).map((el) =>
+					el.textContent.trim()
+				),
+				site: siteElement?.textContent.trim(),
+			});
 
-            return matchingPattern;
-        }
+			return matchingPattern;
+		}
 
-        console.log(`[Pattern Detector] No matching patterns found for ${hostname}`);
-        return null;
-    }
+		console.log(
+			`[Pattern Detector] No matching patterns found for ${hostname}`
+		);
+		return null;
+	}
 })();
-
-
