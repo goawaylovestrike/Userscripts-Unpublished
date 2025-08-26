@@ -2,13 +2,13 @@
 // @name         VK.com Image Unblur
 // @namespace    https://github.com/goawaylovestrike
 // @version      1.1
-// @description  Remove blur effects from images on vk.com
+// @description  Remove blur effects from thumbnails on vk.com
 // @author       GoAwayLoveStrike
 // @downloadURL  https://github.com/goawaylovestrike/Userscripts/raw/refs/heads/main/Scripts/vk-image-unblur/vk-image-unblur.user.js
 // @match        https://vk.com/*
-// @match        https://*.vk.com/*
-// @match        https://*.vkvideo.ru/*
+// @match        https://vkvideo.ru/*
 // @grant        none
+// @license      MIT
 // ==/UserScript==
 
 (function() {
