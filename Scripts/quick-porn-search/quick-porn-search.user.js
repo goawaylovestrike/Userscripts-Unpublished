@@ -233,7 +233,17 @@ function isMobileDevice() {
 		const hostname = window.location.hostname;
 		const parts = hostname.split(".");
 		// Always take the part before the TLD (second-to-last part)
-		return parts[parts.length - 2].toLowerCase();
+		let site = parts[parts.length - 2].toLowerCase();
+		
+		// Normalize site names for specific platforms
+		if (site.includes("onlyfans")) {
+			return "OnlyFans";
+		}
+		if (site.includes("manyvids")) {
+			return "ManyVids";
+		}
+		
+		return site;
 	}
 
 	function getsearchterm() {
@@ -366,6 +376,14 @@ function isMobileDevice() {
 
 			if (!site) {
 				site = getHostnameSite();
+			}
+			
+			// Normalize site names for specific platforms
+			if (site && site.toLowerCase().includes("onlyfans")) {
+				site = "OnlyFans";
+			}
+			if (site && site.toLowerCase().includes("manyvids")) {
+				site = "ManyVids";
 			}
 		}
 
