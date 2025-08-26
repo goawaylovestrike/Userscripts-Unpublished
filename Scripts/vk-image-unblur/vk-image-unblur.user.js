@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         VK.com Image Unblur
-// @namespace    https://github.com/goawaylovestrike/Userscripts/Scripts/vk-image-unblur
+// @namespace    https://github.com/goawaylovestrike
 // @version      1.1
 // @description  Remove blur effects from images on vk.com
 // @author       GoAwayLoveStrike
