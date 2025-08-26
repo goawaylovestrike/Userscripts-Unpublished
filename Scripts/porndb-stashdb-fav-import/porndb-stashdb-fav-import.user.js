@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         porndb-stashdb-fav-import
 // @namespace    https://github.com/GoAwayLoveStrike/Userscripts/Scripts/porndb-stashdb-fav-import/
-// @version      0.2
+// @version      0.3
 // @description  Import favorites from ThePornDB to StashDB
 // @author       GoAwayLoveStrike
 // @match        https://theporndb.net/user/profile
