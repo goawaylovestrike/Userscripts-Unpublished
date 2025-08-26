@@ -155,7 +155,6 @@ const searchButtons = [
 	{
 		name: "Hdporn92",
 		url: "https://hdporn92.com/?s={query}",
-		// queryTransform: (query) => query.replace(/\s+/g, '+')
 	},
 	{
 		name: "Porndish",
