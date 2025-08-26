@@ -139,8 +139,8 @@ const searchButtons = [
         url: 'https://yandex.com/search/?text={query}'
     },
     {
-        name: 'Custom Google',
-        url: 'https://cse.google.com/cse?cx=4158a1b0ef111426d#gsc.tab=0&gsc.q={query}'
+        name: 'Google',
+        url: 'https://www.google.com/search?q={query}'
     },
     {
         name: 'Full Porn',
