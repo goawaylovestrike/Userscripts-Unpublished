@@ -1,7 +1,7 @@
 // ==UserScript==
-// @name Stash Checker E
+// @name Stash Checker Beta
 // @description Add checkmarks on porn websites to scenes/performers that are present in your own Stash instance. Added PornoLabs
-// @version 1.8.0
+// @version 1.8.0 Beta
 // @author Blank-timo95
 // @match *://adultanime.dbsearch.net/*
 // @match *://coomer.su/*
@@ -18,6 +18,7 @@
 // @match *://r18.dev/*
 // @match *://shemalestardb.com/*
 // @match *://stashdb.org/*
+// @match https://www.pornhits.com/*
 // @match *://theporndb.net/*
 // @match *://www.adultfilmdatabase.com/*
 // @match *://www.animecharactersdatabase.com/*
@@ -35,8 +36,11 @@
 // @match *://xslist.org/*
 // @match *://www.fapcat.com/*
 // @match *://www.manyvids.com/*
-// @match        *://*.fullporn.xxx/*
-// @match https://www.omg.xxx/*
+// @match *://www.fullporn.xxx/*
+// @match *://www.omg.xxx/*
+// @match https://www.shyfap.net/*
+// @match https://hdporn92.com/*
+// @match https://www.porndupe.art/*
 // @match *://pornolab.net/*
 // @connect localhost
 // @connect *
@@ -630,7 +634,8 @@
 							onload,
 							target,
 							type,
-							stashIdEndpoint
+							stashIdEndpoint,
+							modifier = "EQUALS"
 						) {
 							let criterion;
 							let query;
@@ -645,10 +650,27 @@
 									)}",modifier:EQUALS}`;
 									break;
 
+								case _dataTypes__WEBPACK_IMPORTED_MODULE_3__.ZU
+									.Title:
+									// For title matching, use fuzzy matching by default
+									if (modifier === "EQUALS") {
+										// Create case-insensitive regex pattern that matches titles starting with the search term
+										const escapedTitle = queryString.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+										const regexPattern = `(?i)^${escapedTitle}`;
+										criterion = `${type}:{value:"""${encodeURIComponent(
+											regexPattern
+										)}""",modifier:MATCHES_REGEX}`;
+									} else {
+										criterion = `${type}:{value:"""${encodeURIComponent(
+											queryString
+										)}""",modifier:${modifier}}`;
+									}
+									break;
+
 								default:
 									criterion = `${type}:{value:"""${encodeURIComponent(
 										queryString
-									)}""",modifier:EQUALS}`;
+									)}""",modifier:${modifier}}`;
 									break;
 							}
 							switch (target) {
@@ -734,6 +756,7 @@
 								nameSelector = _utils__WEBPACK_IMPORTED_MODULE_2__.ou,
 								titleSelector = _utils__WEBPACK_IMPORTED_MODULE_2__.ou,
 								color = () => "green",
+								modifier = "EQUALS",
 							}
 						) {
 							let displayElement = displaySelector(element);
@@ -879,7 +902,8 @@
 										target,
 										_dataTypes__WEBPACK_IMPORTED_MODULE_3__
 											.ZU.Title,
-										stashIdEndpoint
+										stashIdEndpoint,
+										modifier
 									);
 								} else
 									console.info(
@@ -2695,7 +2719,7 @@
 										_check__WEBPACK_IMPORTED_MODULE_0__.z)(
 											_dataTypes__WEBPACK_IMPORTED_MODULE_1__
 												.We.Scene,
-											"strong.title, #tab_video_info.tab-content div.headline",
+											"strong.title",
 											{
 												observe: true,
 												titleSelector: (e) => {
@@ -2724,7 +2748,7 @@
 												},
 											}
 										);
-										
+
 										// Second selector - new addition
 										(0,
 										_check__WEBPACK_IMPORTED_MODULE_0__.z)(
@@ -2734,22 +2758,36 @@
 											{
 												observe: true,
 												titleSelector: (e) => {
-													const rawText = e.innerText.trim();
+													const rawText =
+														e.innerText.trim();
 													// Extract scene title from the full text
 													// Pattern: "Sis Loves Me - Ellie Murphy - Austin Pierce - Tiny Rhea - How Far Will She Go To Join This Sorority? / 16.08.2024"
 													// The scene title is the last part before the date (before " / ")
-													const dateIndex = rawText.lastIndexOf(" / ");
+													const dateIndex =
+														rawText.lastIndexOf(
+															" / "
+														);
 													if (dateIndex !== -1) {
-														const beforeDate = rawText.substring(0, dateIndex);
-														const parts = beforeDate.split(" - ");
+														const beforeDate =
+															rawText.substring(
+																0,
+																dateIndex
+															);
+														const parts =
+															beforeDate.split(
+																" - "
+															);
 														if (parts.length >= 2) {
 															// Return the last part before the date
-															return parts[parts.length - 1].trim();
+															return parts[
+																parts.length - 1
+															].trim();
 														}
 													}
 													return rawText;
 												},
-												urlSelector: () => location.href,
+												urlSelector: () =>
+													location.href,
 											}
 										);
 									}, 1000);
@@ -3261,6 +3299,116 @@
 									);
 									break;
 								}
+
+								case "www.shyfap.net":
+								case "www.porndupe.art":
+									// Check scene titles
+									(0, _check__WEBPACK_IMPORTED_MODULE_0__.z)(
+										_dataTypes__WEBPACK_IMPORTED_MODULE_1__
+											.We.Scene,
+										".item-page_header h1.title, .media-card_title",
+										{
+											observe: true,
+											urlSelector: currentSite,
+											titleSelector: (e) => {
+												const fullText =
+													e.textContent.trim();
+												// Extract title before the first parenthesis
+												const parenIndex =
+													fullText.indexOf("(");
+												return parenIndex !== -1
+													? fullText
+															.substring(
+																0,
+																parenIndex
+															)
+															.trim()
+													: fullText;
+											},
+										}
+									);
+
+									// Check performers
+									(0, _check__WEBPACK_IMPORTED_MODULE_0__.z)(
+										_dataTypes__WEBPACK_IMPORTED_MODULE_1__
+											.We.Performer,
+										"a.datalist_link[href*='/pornstar/'], a.models_card_body[href*='/pornstar/']",
+										{
+											observe: true,
+											urlSelector: (e) => {
+												const href =
+													e.getAttribute("href");
+												return href
+													? href.startsWith("/")
+														? window.location
+																.origin + href
+														: href
+													: null;
+											},
+											nameSelector: (e) =>
+												e.textContent.trim(),
+										}
+									);
+									break;
+
+								case "hdporn92.com":
+									// Check scene titles
+									(0, _check__WEBPACK_IMPORTED_MODULE_0__.z)(
+										_dataTypes__WEBPACK_IMPORTED_MODULE_1__
+											.We.Scene,
+										".entry-title, .entry-header span",
+										{
+											observe: true,
+											urlSelector: currentSite,
+											titleSelector: (e) => {
+												const fullText = e.textContent.trim();
+												
+												// Split by " – " (en-dash) to handle different formats
+												const parts = fullText.split(" – ");
+												
+												let extractedTitle;
+												if (parts.length === 3) {
+													// Format: "Site - Performer - Title"
+													extractedTitle = parts[2].trim();
+												} else if (parts.length === 2) {
+													// Format: "Site - Title" 
+													extractedTitle = parts[1].trim();
+												} else {
+													// Format: "Title" (no dashes)
+													extractedTitle = fullText;
+												}
+												
+												console.log(`[HDPorn92] Full text: "${fullText}"`);
+												console.log(`[HDPorn92] Parts:`, parts);
+												console.log(`[HDPorn92] Extracted title: "${extractedTitle}"`);
+												
+												return extractedTitle;
+											},
+										}
+									);
+
+									// Check performers
+									(0, _check__WEBPACK_IMPORTED_MODULE_0__.z)(
+										_dataTypes__WEBPACK_IMPORTED_MODULE_1__
+											.We.Performer,
+										"#video-actors a[href*='/actor/']",
+										{
+											observe: true,
+											urlSelector: (e) => {
+												const href =
+													e.getAttribute("href");
+												return href
+													? href.startsWith("/")
+														? window.location
+																.origin + href
+														: href
+													: null;
+											},
+											nameSelector: (e) =>
+												e.textContent.trim(),
+										}
+									);
+									break;
 
 								default:
 									console.warn(
