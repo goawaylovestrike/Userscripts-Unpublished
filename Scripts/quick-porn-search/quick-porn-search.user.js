@@ -3,7 +3,7 @@
 // @namespace    https://github.com/goawaylovestrike
 // @description  Adds a dropdown on many porn sites to search various sites found in the html.
 // @author       GoAwayLoveStrike
-// @version      5.3
+// @version      5.4.beta
 // @downloadURL  https://github.com/goawaylovestrike/Userscripts-Unpublished/raw/refs/heads/main/Scripts/quick-porn-search/quick-porn-search.user.js
 // @include https://www.porndupe.net/*
 // @include https://www.wifey.com/*
@@ -148,46 +148,60 @@ const searchButtons = [
 	{
 		name: "1337x",
 		url: "https://1337x.to/sort-search/{query}/time/desc/1/",
+		// icon: "https://example.com/custom-icon.png", // Optional: custom icon URL
 	},
 	{
 		name: "PornoLabs",
 		url: "https://pornolab.net/forum/tracker.php?max=1&nm={query}",
+		// icon: "https://example.com/custom-icon.png", // Optional: custom icon URL
 	},
 	{
 		name: "Yandex",
 		url: "https://yandex.com/search/?text={query}",
+		// icon: "https://example.com/custom-icon.png", // Optional: custom icon URL
+	},
+	{
+		name: "Stash",
+		url: "http://localhost:9999/scenes?q={query}&sortby=date&sortdir=asc&z=3",
+		// icon: "https://example.com/custom-icon.png", // Optional: custom icon URL
 	},
 	{
 		name: "Google",
 		url: "https://www.google.com/search?q={query}",
+		// icon: "https://example.com/custom-icon.png", // Optional: custom icon URL
 	},
 	{
 		name: "Full Porn",
 		url: "https://www.fullporn.xxx/search/{query}/",
 		queryTransform: (query) => query.replace(/\s+/g, "-"), //This replaces all spaces with dashes in the url which is required for some sites.
+		// icon: "https://example.com/custom-icon.png", // Optional: custom icon URL
 	},
 	{
 		name: "WatchPorn.to",
 		url: "https://watchporn.to/search/{query}/",
 		queryTransform: (query) => query.replace(/\s+/g, "-"),
+		// icon: "https://example.com/custom-icon.png", // Optional: custom icon URL
 	},
 	{
 		name: "Hdporn92",
 		url: "https://hdporn92.com/?s={query}",
+		// icon: "https://example.com/custom-icon.png", // Optional: custom icon URL
 	},
 	{
 		name: "Porndish",
 		url: "https://www.porndish.com/?s={query}",
+		icon: "https://t1.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=http://porndish.com&size=16",
 	},
 	{
 		name: "Sexuria",
 		url: "https://sexuria.net/?do=search&subaction=search&search_start=0&full_search=0&story={query}",
+		// icon: "https://example.com/custom-icon.png", // Optional: custom icon URL
 	},
 	{
 		name: "Porn Horder",
 		url: "https://w15.pornhoarder.tv/search/?search={query}&sort=0&date=0&servers%5B%5D=47&servers%5B%5D=21&servers%5B%5D=40&servers%5B%5D=45&servers%5B%5D=12&servers%5B%5D=35&servers%5B%5D=25&servers%5B%5D=41&servers%5B%5D=44&servers%5B%5D=42&servers%5B%5D=43&servers%5B%5D=29&author=0&page=1",
+		// icon: "https://example.com/custom-icon.png", // Optional: custom icon URL
 	},
-
 ];
 
 function isMobileDevice() {
@@ -200,6 +214,9 @@ function isMobileDevice() {
 
 (function () {
 	"use strict";
+
+	// Log script name and version on startup
+	console.log(`${GM_info.script.name} v${GM_info.script.version} - Script loaded`);
 
 	var searchterm = null;
 	let initAttempts = 0;
@@ -423,7 +440,8 @@ function isMobileDevice() {
 		searchterm = parts
 			.join(" ")
 			.trim()
-			.replace(/[^\w\s-.!&]/g, "") // Remove special characters without replacing with spaces
+			.replace(/[✗✓!]\s?/g, "") // Remove ✗, ✓, ! symbols and any trailing space
+			.replace(/[^\w\s-.!&]/g, "") // Remove other special characters without replacing with spaces
 			.replace(/\s+/g, " "); // Normalize spaces
 		console.log(`Final searchterm for ${hostname}:`, searchterm);
 	}
@@ -522,15 +540,25 @@ function isMobileDevice() {
                 ${isMobile ? "left: 0 !important;" : ""}
             `;
 
+			console.log("[Icon Debug] Processing searchButtons:", searchButtons);
 			searchButtons.forEach((button) => {
 				const link = document.createElement("a");
 				link.id = button.name;
 
 				// Create favicon image
 				const favicon = document.createElement("img");
-				const urlObj = new URL(button.url);
-				const domain = urlObj.hostname.split(".").slice(-2).join(".");
-				favicon.src = `${urlObj.protocol}//${domain}/favicon.ico`;
+				// Use custom icon if provided, otherwise use favicon from domain
+				console.log(`[Icon Debug] Button: ${button.name}, Has icon: ${!!button.icon}, Icon value: ${button.icon}`);
+				if (button.icon) {
+					console.log(`[Icon Debug] Using custom icon for ${button.name}: ${button.icon}`);
+					favicon.src = button.icon;
+				} else {
+					const urlObj = new URL(button.url);
+					const domain = urlObj.hostname.split(".").slice(-2).join(".");
+					const fallbackIcon = `${urlObj.protocol}//${domain}/favicon.ico`;
+					console.log(`[Icon Debug] Using fallback icon for ${button.name}: ${fallbackIcon}`);
+					favicon.src = fallbackIcon;
+				}
 				favicon.style.cssText = `
                     width: 16px !important;
                     height: 16px !important;

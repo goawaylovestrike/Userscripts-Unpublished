@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name Stash Checker Beta
 // @description Add checkmarks on porn websites to scenes/performers that are present in your own Stash instance. Added PornoLabs
-// @version 1.8.0 Beta
+// @version 1.8.0 Beta 3
 // @author Blank-timo95
 // @match *://adultanime.dbsearch.net/*
 // @match *://coomer.su/*
@@ -39,6 +39,7 @@
 // @match *://www.fullporn.xxx/*
 // @match *://www.omg.xxx/*
 // @match https://www.shyfap.net/*
+// @match https://www.fullhdporn.sex/*
 // @match https://hdporn92.com/*
 // @match https://www.porndupe.art/*
 // @match *://pornolab.net/*
@@ -652,25 +653,11 @@
 
 								case _dataTypes__WEBPACK_IMPORTED_MODULE_3__.ZU
 									.Title:
-									// For title matching, use fuzzy matching by default
-									if (modifier === "EQUALS") {
-										// Create case-insensitive regex pattern that matches titles starting with the search term
-										const escapedTitle = queryString.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-										const regexPattern = `(?i)^${escapedTitle}`;
-										criterion = `${type}:{value:"""${encodeURIComponent(
-											regexPattern
-										)}""",modifier:MATCHES_REGEX}`;
-									} else {
-										criterion = `${type}:{value:"""${encodeURIComponent(
-											queryString
-										)}""",modifier:${modifier}}`;
-									}
+									criterion = `${type}:{value:"""${queryString.replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/\n/g, '\\n').replace(/\r/g, '\\r')}""",modifier:${modifier}}`;
 									break;
 
 								default:
-									criterion = `${type}:{value:"""${encodeURIComponent(
-										queryString
-									)}""",modifier:${modifier}}`;
+									criterion = `${type}:{value:"""${queryString.replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/\n/g, '\\n').replace(/\r/g, '\\r')}""",modifier:${modifier}}`;
 									break;
 							}
 							switch (target) {
@@ -740,6 +727,52 @@
 											access(data)
 										)
 									);
+									
+									// Run fuzzy search for titles and log results
+									if (type === _dataTypes__WEBPACK_IMPORTED_MODULE_3__.ZU.Title && target === _dataTypes__WEBPACK_IMPORTED_MODULE_3__.We.Scene) {
+										let fuzzyCriterion = `${type}:{value:"""${queryString.replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/\n/g, '\\n').replace(/\r/g, '\\r')}""",modifier:MATCHES_REGEX}`;
+										let fuzzyQuery = `findScenes(scene_filter:{${fuzzyCriterion}}){scenes{${getDataFields(target)}}}`;
+										
+										// Debug logging
+										console.log(`DEBUG - Original queryString:`, queryString);
+										console.log(`DEBUG - Encoded queryString:`, encodeURIComponent(queryString));
+										console.log(`DEBUG - Fuzzy criterion:`, fuzzyCriterion);
+										console.log(`DEBUG - Full fuzzy query:`, fuzzyQuery);
+										
+										(0, _request__WEBPACK_IMPORTED_MODULE_4__.E)(
+											endpoint,
+											fuzzyQuery,
+											true
+										).then((fuzzyData) => {
+											let fuzzyResults = fuzzyData.scenes;
+											console.log(`Fuzzy search for "${queryString}":`, fuzzyResults);
+											
+											// Check if any results contain episode patterns
+											if (fuzzyResults && fuzzyResults.length > 0) {
+												let episodeMatches = fuzzyResults.filter(result => {
+													let title = result.title || '';
+													return /.*E\d.*/i.test(title);
+												});
+												
+												if (episodeMatches.length > 0) {
+													console.log(`Episode pattern matches for "${queryString}":`, episodeMatches);
+													// Mark fuzzy matches with a flag
+													episodeMatches.forEach(match => {
+														match.isFuzzyMatch = true;
+													});
+													// Pass episode matches to onload function to show them on the page
+													onload(
+														target,
+														type,
+														endpoint,
+														episodeMatches
+													);
+												}
+											}
+										}).catch((error) => {
+											console.log(`Fuzzy search error for "${queryString}":`, error);
+										});
+									}
 								}
 							);
 						}
@@ -747,6 +780,7 @@
 							target,
 							element,
 							{
+								
 								displaySelector = (e) => e,
 								prepareUrl = (url) => url,
 								urlSelector = (e) => e.closest("a")?.href,
@@ -889,6 +923,8 @@
 							) {
 								let title = titleSelector(element);
 								if (title) {
+									// Store processed title for tooltip display
+									displayElement.setAttribute('data-processed-title', title);
 									void 0;
 									await queryStash(
 										title,
@@ -1182,7 +1218,7 @@
 				}
 			}
 			const batchTimeout = 10;
-			const maxBatchSize = 100;
+			const maxBatchSize = 20;
 			let batchQueries = new Map();
 			let batchQueues = new Map();
 			async function request(endpoint, query, batchQueries = false) {
@@ -1239,7 +1275,7 @@
 			function buildBatchQuery(endpoint, batchQuery) {
 				let query = batchQuery.queries
 					.map((request, index) => `q${index}:${request.query}`)
-					.join();
+					.join(',');
 				let resolve = (data) => {
 					void 0;
 					batchQuery.queries.forEach((request, index) => {
@@ -1553,6 +1589,7 @@
 							OptionKey["checkMark"] = "checkMark";
 							OptionKey["crossMark"] = "crossMark";
 							OptionKey["warningMark"] = "warningMark";
+							OptionKey["blueQestionMark"] = "blueQestionMark";
 						})(OptionKey || (OptionKey = {}));
 						const defaultBooleanOptions = new Map([
 							[OptionKey.showCrossMark, true],
@@ -1563,6 +1600,7 @@
 							[OptionKey.checkMark, "✓"],
 							[OptionKey.crossMark, "✗"],
 							[OptionKey.warningMark, "!"],
+							[OptionKey.blueQestionMark, "?"],
 						]);
 						const booleanOptions = await (0,
 						_storage__WEBPACK_IMPORTED_MODULE_1__._W)(
@@ -1599,7 +1637,8 @@
 									OptionKey.warningMark,
 									"Duplicate mark"
 								),
-								charBox(OptionKey.crossMark, "Cross mark")
+								charBox(OptionKey.crossMark, "Cross mark"),
+								charBox(OptionKey.blueQestionMark, "Blue question mark")
 							);
 							generalSection.appendChild(symbolSettings);
 							let tooltipSettings = fieldSet(
@@ -3313,6 +3352,50 @@
 											titleSelector: (e) => {
 												const fullText =
 													e.textContent.trim();
+												// Extract title before the first parenthesis or hash
+												const parenIndex = fullText.indexOf("(");
+												const hashIndex = fullText.indexOf("#");
+												const delimiterIndex = parenIndex !== -1 ? parenIndex : hashIndex;
+												return delimiterIndex !== -1 ? fullText.substring(0, delimiterIndex).trim() : fullText;
+											},
+										}
+									);
+
+									// Check performers
+									(0, _check__WEBPACK_IMPORTED_MODULE_0__.z)(
+										_dataTypes__WEBPACK_IMPORTED_MODULE_1__
+											.We.Performer,
+										"a.datalist_link[href*='/pornstar/'], a.models_card_body[href*='/pornstar/']",
+										{
+											observe: true,
+											urlSelector: (e) => {
+												const href =
+													e.getAttribute("href");
+												return href
+													? href.startsWith("/")
+														? window.location
+																.origin + href
+														: href
+													: null;
+											},
+											nameSelector: (e) =>
+												e.textContent.trim(),
+										}
+									);
+									break;
+
+								case "www.fullhdporn.sex":
+									// Check scene titles
+									(0, _check__WEBPACK_IMPORTED_MODULE_0__.z)(
+										_dataTypes__WEBPACK_IMPORTED_MODULE_1__
+											.We.Scene,
+										".item-page_header h1.title, .media-card_title",
+										{
+											observe: true,
+											urlSelector: currentSite,
+											titleSelector: (e) => {
+												const fullText =
+													e.textContent.trim();
 												// Extract title before the first parenthesis
 												const parenIndex =
 													fullText.indexOf("(");
@@ -3896,6 +3979,49 @@
 									)} `;
 								symbol.style.color = "red";
 								tooltip = `${targetReadable} not in Stash<br>`;
+								
+								// Add original element data to tooltip
+								let originalTitle = "";
+								let originalUrl = "";
+								
+								// Try to get title from various sources
+								if (element.title) {
+									originalTitle = element.title;
+								} else if (element.textContent && element.textContent.trim()) {
+									originalTitle = element.textContent.trim();
+								} else if (element.innerText && element.innerText.trim()) {
+									originalTitle = element.innerText.trim();
+								} else if (element.closest("a") && element.closest("a").title) {
+									originalTitle = element.closest("a").title;
+								} else if (element.closest("a") && element.closest("a").textContent && element.closest("a").textContent.trim()) {
+									originalTitle = element.closest("a").textContent.trim();
+								}
+								
+								// Clean up the title by removing prefixes and symbols
+								if (originalTitle) {
+									originalTitle = originalTitle
+										.replace(/^(x\/|check\/)/i, '') // Remove x/ or check/ prefixes
+										.replace(/^[✗✓!?]/, '') // Remove ✗ ✓ or ! prefix
+										.trim(); // Remove extra spaces
+								}
+								
+								// Try to get URL from various sources
+								if (element.href) {
+									originalUrl = element.href;
+								} else if (element.closest("a") && element.closest("a").href) {
+									originalUrl = element.closest("a").href;
+								}
+								
+								// Add original data to tooltip if available
+								if (originalTitle) {
+									// Use processed title if available (for title searches), otherwise use original
+									const processedTitle = element.getAttribute('data-processed-title');
+									const displayTitle = processedTitle || originalTitle;
+									tooltip += `Title: ${displayTitle}<br>`;
+								}
+								if (originalUrl) {
+									tooltip += `URL: ${originalUrl}<br>`;
+								}
 							} else if (
 								new Set(data.map((e) => e.endpoint)).size <
 								data.length
@@ -3917,11 +4043,21 @@
 									_dataTypes__WEBPACK_IMPORTED_MODULE_0__.Wb
 										.Check
 								);
-								symbol.textContent = `${_settings_general__WEBPACK_IMPORTED_MODULE_2__.i3.get(
-									_settings_general__WEBPACK_IMPORTED_MODULE_2__
-										.vw.checkMark
-								)} `;
-								symbol.style.color = color(data[0]);
+								
+								// Check if this is a fuzzy match and apply blue styling
+								if (data[0].isFuzzyMatch) {
+									symbol.textContent = `${_settings_general__WEBPACK_IMPORTED_MODULE_2__.i3.get(
+										_settings_general__WEBPACK_IMPORTED_MODULE_2__
+											.vw.blueQestionMark
+									)} `;
+									symbol.style.color = "#00BFFF";
+								} else {
+									symbol.textContent = `${_settings_general__WEBPACK_IMPORTED_MODULE_2__.i3.get(
+										_settings_general__WEBPACK_IMPORTED_MODULE_2__
+											.vw.checkMark
+									)} `;
+									symbol.style.color = color(data[0]);
+								}
 							}
 							tooltip += `Endpoints: ${endpoints.join(", ")}`;
 							tooltip += "<br>";
