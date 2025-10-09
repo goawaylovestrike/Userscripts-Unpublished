@@ -214,7 +214,8 @@ function isMobileDevice() {
 
 (function () {
 	"use strict";
-
+	// Log script name and version on startup
+	console.log(`${GM_info.script.name} v${GM_info.script.version} - Script loaded`);
 	// Log script name and version on startup
 	console.log(`${GM_info.script.name} v${GM_info.script.version} - Script loaded`);
 
