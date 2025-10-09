@@ -731,8 +731,8 @@
 										)
 									);
 									
-									// Run fuzzy search for titles and log results (if enabled)
-									if (type === _dataTypes__WEBPACK_IMPORTED_MODULE_3__.ZU.Title && target === _dataTypes__WEBPACK_IMPORTED_MODULE_3__.We.Scene && fuzzySearchEnabled) {
+									// Run fuzzy search for titles and log results
+									if (type === _dataTypes__WEBPACK_IMPORTED_MODULE_3__.ZU.Title && target === _dataTypes__WEBPACK_IMPORTED_MODULE_3__.We.Scene) {
 										let fuzzyCriterion = `${type}:{value:"""${queryString.replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/\n/g, '\\n').replace(/\r/g, '\\r')}""",modifier:MATCHES_REGEX}`;
 										let fuzzyQuery = `findScenes(scene_filter:{${fuzzyCriterion}}){scenes{${getDataFields(target)}}}`;
 										
