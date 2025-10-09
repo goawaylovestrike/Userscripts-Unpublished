@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name Stash Checker Beta
 // @description Add checkmarks on porn websites to scenes/performers that are present in your own Stash instance. Added PornoLabs
-// @version 1.8.0 Beta.1
+// @version 1.8.0
 // @author Blank-timo95
 // @match *://adultanime.dbsearch.net/*
 // @match *://coomer.su/*
@@ -39,6 +39,7 @@
 // @match *://www.fullporn.xxx/*
 // @match *://www.omg.xxx/*
 // @match https://www.shyfap.net/*
+// @match https://www.fullhdporn.sex/*
 // @match https://hdporn92.com/*
 // @match https://www.porndupe.art/*
 // @match *://pornolab.net/*
@@ -634,8 +635,7 @@
 							onload,
 							target,
 							type,
-							stashIdEndpoint,
-							modifier = "EQUALS"
+							stashIdEndpoint
 						) {
 							let criterion;
 							let query;
@@ -650,31 +650,10 @@
 									)}",modifier:EQUALS}`;
 									break;
 
-								case _dataTypes__WEBPACK_IMPORTED_MODULE_3__.ZU
-									.Title:
-									// For title matching, use fuzzy matching by default
-									if (modifier === "EQUALS") {
-										// Create case-insensitive regex pattern that matches titles starting with the search term
-										const escapedTitle =
-											queryString.replace(
-												/[.*+?^${}()|[\]\\]/g,
-												"\\$&"
-											);
-										const regexPattern = `(?i)^${escapedTitle}`;
-										criterion = `${type}:{value:"""${encodeURIComponent(
-											regexPattern
-										)}""",modifier:MATCHES_REGEX}`;
-									} else {
-										criterion = `${type}:{value:"""${encodeURIComponent(
-											queryString
-										)}""",modifier:${modifier}}`;
-									}
-									break;
-
 								default:
 									criterion = `${type}:{value:"""${encodeURIComponent(
 										queryString
-									)}""",modifier:${modifier}}`;
+									)}""",modifier:EQUALS}`;
 									break;
 							}
 							switch (target) {
@@ -760,7 +739,6 @@
 								nameSelector = _utils__WEBPACK_IMPORTED_MODULE_2__.ou,
 								titleSelector = _utils__WEBPACK_IMPORTED_MODULE_2__.ou,
 								color = () => "green",
-								modifier = "EQUALS",
 							}
 						) {
 							let displayElement = displaySelector(element);
@@ -893,6 +871,8 @@
 							) {
 								let title = titleSelector(element);
 								if (title) {
+									// Store processed title for tooltip display
+									displayElement.setAttribute('data-processed-title', title);
 									void 0;
 									await queryStash(
 										title,
@@ -906,8 +886,7 @@
 										target,
 										_dataTypes__WEBPACK_IMPORTED_MODULE_3__
 											.ZU.Title,
-										stashIdEndpoint,
-										modifier
+										stashIdEndpoint
 									);
 								} else
 									console.info(
@@ -1186,7 +1165,7 @@
 				}
 			}
 			const batchTimeout = 10;
-			const maxBatchSize = 20;
+			const maxBatchSize = 100;
 			let batchQueries = new Map();
 			let batchQueues = new Map();
 			async function request(endpoint, query, batchQueries = false) {
@@ -2130,8 +2109,7 @@
 								);
 								return;
 							}
-	// Log script name and version on startup
-	console.log(`${GM_info.script.name} v${GM_info.script.version} - Script loaded`);
+							console.info("Running Stash Checker");
 							let currentSite = () => window.location.href;
 							switch (window.location.host) {
 								case "www.iwara.tv": {
@@ -3391,6 +3369,50 @@
 											titleSelector: (e) => {
 												const fullText =
 													e.textContent.trim();
+												// Extract title before the first parenthesis or hash
+												const parenIndex = fullText.indexOf("(");
+												const hashIndex = fullText.indexOf("#");
+												const delimiterIndex = parenIndex !== -1 ? parenIndex : hashIndex;
+												return delimiterIndex !== -1 ? fullText.substring(0, delimiterIndex).trim() : fullText;
+											},
+										}
+									);
+
+									// Check performers
+									(0, _check__WEBPACK_IMPORTED_MODULE_0__.z)(
+										_dataTypes__WEBPACK_IMPORTED_MODULE_1__
+											.We.Performer,
+										"a.datalist_link[href*='/pornstar/'], a.models_card_body[href*='/pornstar/']",
+										{
+											observe: true,
+											urlSelector: (e) => {
+												const href =
+													e.getAttribute("href");
+												return href
+													? href.startsWith("/")
+														? window.location
+																.origin + href
+														: href
+													: null;
+											},
+											nameSelector: (e) =>
+												e.textContent.trim(),
+										}
+									);
+									break;
+
+								case "www.fullhdporn.sex":
+									// Check scene titles
+									(0, _check__WEBPACK_IMPORTED_MODULE_0__.z)(
+										_dataTypes__WEBPACK_IMPORTED_MODULE_1__
+											.We.Scene,
+										".item-page_header h1.title, .media-card_title",
+										{
+											observe: true,
+											urlSelector: currentSite,
+											titleSelector: (e) => {
+												const fullText =
+													e.textContent.trim();
 												// Extract title before the first parenthesis
 												const parenIndex =
 													fullText.indexOf("(");
@@ -3439,38 +3461,27 @@
 											observe: true,
 											urlSelector: currentSite,
 											titleSelector: (e) => {
-												const fullText =
-													e.textContent.trim();
-
+												const fullText = e.textContent.trim();
+												
 												// Split by " – " (en-dash) to handle different formats
-												const parts =
-													fullText.split(" – ");
-
+												const parts = fullText.split(" – ");
+												
 												let extractedTitle;
 												if (parts.length === 3) {
 													// Format: "Site - Performer - Title"
-													extractedTitle =
-														parts[2].trim();
+													extractedTitle = parts[2].trim();
 												} else if (parts.length === 2) {
-													// Format: "Site - Title"
-													extractedTitle =
-														parts[1].trim();
+													// Format: "Site - Title" 
+													extractedTitle = parts[1].trim();
 												} else {
 													// Format: "Title" (no dashes)
 													extractedTitle = fullText;
 												}
-
-												console.log(
-													`[HDPorn92] Full text: "${fullText}"`
-												);
-												console.log(
-													`[HDPorn92] Parts:`,
-													parts
-												);
-												console.log(
-													`[HDPorn92] Extracted title: "${extractedTitle}"`
-												);
-
+												
+												console.log(`[HDPorn92] Full text: "${fullText}"`);
+												console.log(`[HDPorn92] Parts:`, parts);
+												console.log(`[HDPorn92] Extracted title: "${extractedTitle}"`);
+												
 												return extractedTitle;
 											},
 										}
@@ -3985,6 +3996,49 @@
 									)} `;
 								symbol.style.color = "red";
 								tooltip = `${targetReadable} not in Stash<br>`;
+								
+								// Add original element data to tooltip
+								let originalTitle = "";
+								let originalUrl = "";
+								
+								// Try to get title from various sources
+								if (element.title) {
+									originalTitle = element.title;
+								} else if (element.textContent && element.textContent.trim()) {
+									originalTitle = element.textContent.trim();
+								} else if (element.innerText && element.innerText.trim()) {
+									originalTitle = element.innerText.trim();
+								} else if (element.closest("a") && element.closest("a").title) {
+									originalTitle = element.closest("a").title;
+								} else if (element.closest("a") && element.closest("a").textContent && element.closest("a").textContent.trim()) {
+									originalTitle = element.closest("a").textContent.trim();
+								}
+								
+								// Clean up the title by removing prefixes and symbols
+								if (originalTitle) {
+									originalTitle = originalTitle
+										.replace(/^(x\/|check\/)/i, '') // Remove x/ or check/ prefixes
+										.replace(/^[✗✓!?]/, '') // Remove ✗ ✓ or ! prefix
+										.trim(); // Remove extra spaces
+								}
+								
+								// Try to get URL from various sources
+								if (element.href) {
+									originalUrl = element.href;
+								} else if (element.closest("a") && element.closest("a").href) {
+									originalUrl = element.closest("a").href;
+								}
+								
+								// Add original data to tooltip if available
+								if (originalTitle) {
+									// Use processed title if available (for title searches), otherwise use original
+									const processedTitle = element.getAttribute('data-processed-title');
+									const displayTitle = processedTitle || originalTitle;
+									tooltip += `Title: ${displayTitle}<br>`;
+								}
+								if (originalUrl) {
+									tooltip += `URL: ${originalUrl}<br>`;
+								}
 							} else if (
 								new Set(data.map((e) => e.endpoint)).size <
 								data.length
