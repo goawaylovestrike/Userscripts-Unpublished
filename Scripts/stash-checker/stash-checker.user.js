@@ -712,6 +712,9 @@
 								default:
 									return;
 							}
+							// Check if fuzzy search is enabled first
+							const fuzzySearchEnabled = await GM.getValue("fuzzySearchEnabled", true);
+							
 							_settings_endpoints__WEBPACK_IMPORTED_MODULE_1__.I.forEach(
 								(endpoint) => {
 									(0,
@@ -728,8 +731,8 @@
 										)
 									);
 									
-									// Run fuzzy search for titles and log results
-									if (type === _dataTypes__WEBPACK_IMPORTED_MODULE_3__.ZU.Title && target === _dataTypes__WEBPACK_IMPORTED_MODULE_3__.We.Scene) {
+									// Run fuzzy search for titles and log results (if enabled)
+									if (type === _dataTypes__WEBPACK_IMPORTED_MODULE_3__.ZU.Title && target === _dataTypes__WEBPACK_IMPORTED_MODULE_3__.We.Scene && fuzzySearchEnabled) {
 										let fuzzyCriterion = `${type}:{value:"""${queryString.replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/\n/g, '\\n').replace(/\r/g, '\\r')}""",modifier:MATCHES_REGEX}`;
 										let fuzzyQuery = `findScenes(scene_filter:{${fuzzyCriterion}}){scenes{${getDataFields(target)}}}`;
 										
@@ -1927,7 +1930,7 @@
 								`stashChecker-settingsSectionBody-${id}`
 							);
 						}
-						function openSettingsWindow() {
+						async function openSettingsWindow() {
 							let settingsModal = document.getElementById(
 								"stashChecker-settingsModal"
 							);
@@ -1935,8 +1938,42 @@
 								(0,
 								_statistics__WEBPACK_IMPORTED_MODULE_2__.n)();
 								settingsModal.style.display = "initial";
+								
+								// Add fuzzy search setting
+								await initFuzzySearchSetting();
 							}
 						}
+						
+						async function initFuzzySearchSetting() {
+							// Check if setting already exists
+							if (document.getElementById("stashChecker-fuzzySearchSetting")) {
+								return;
+							}
+							
+							let fuzzySection = newSettingsSection(
+								"fuzzySearch",
+								"Fuzzy Search",
+								"Enable fuzzy search for better title matching (may cause GraphQL errors with special characters)"
+							);
+							
+							let fuzzyEnabled = await GM.getValue("fuzzySearchEnabled", true);
+							
+							let fuzzyOption = document.createElement("div");
+							fuzzyOption.classList.add("stashChecker", "option");
+							fuzzyOption.innerHTML = `
+								<label>
+									<input type="checkbox" id="fuzzySearchEnabled" ${fuzzyEnabled ? 'checked' : ''}>
+									Enable fuzzy search
+								</label>
+							`;
+							fuzzySection.append(fuzzyOption);
+							
+							// Add event listener
+							document.getElementById("fuzzySearchEnabled").addEventListener("change", async (e) => {
+								await GM.setValue("fuzzySearchEnabled", e.target.checked);
+							});
+						}
+						
 						function closeSettingsWindow(event) {
 							if (event.target === this) {
 								this.style.display = "none";
@@ -2772,11 +2809,56 @@
 
 													const rawText =
 														clone.innerText.trim();
-													const parts =
-														rawText.split(" - ");
-													return parts.length >= 3
-														? parts[1].trim()
-														: rawText;
+													
+													// Try to extract title using URL slug matching
+													const anchor = e.closest("a");
+													if (anchor && anchor.href) {
+														const urlMatch = anchor.href.match(/\/videos\/\d+\/([^\/]+)\//);
+														if (urlMatch) {
+															const urlSlug = urlMatch[1];
+															
+															// Find the matching part in the full title by looking for the best match
+															const titleParts = rawText.split(" - ");
+															let bestMatch = "";
+															let bestMatchScore = 0;
+															
+															// Try all possible combinations of consecutive parts
+															for (let i = 1; i < titleParts.length; i++) {
+																for (let j = i; j < titleParts.length; j++) {
+																	const combinedPart = titleParts.slice(i, j + 1).join(" - ");
+																	
+																	// Convert to searchable format
+																	const titleSlug = combinedPart.toLowerCase()
+																		.replace(/[^a-z0-9\s]/g, '')
+																		.replace(/\s+/g, '');
+																	const searchSlug = urlSlug.toLowerCase()
+																		.replace(/[^a-z0-9\s]/g, '')
+										.replace(/\s+/g, '');
+																	
+																	if (titleSlug.includes(searchSlug) || searchSlug.includes(titleSlug)) {
+																		// Calculate a score that balances match quality and length
+																		// Prefer matches that contain most/all of the URL slug but aren't too long
+																		const matchRatio = Math.min(titleSlug.length, searchSlug.length) / Math.max(titleSlug.length, searchSlug.length);
+																		const lengthPenalty = Math.max(0, (combinedPart.length - searchSlug.length * 2) / 100);
+																		const matchScore = matchRatio - lengthPenalty;
+																		
+																		if (matchScore > bestMatchScore) {
+																			bestMatch = combinedPart;
+																			bestMatchScore = matchScore;
+																		}
+																	}
+																}
+															}
+															
+															if (bestMatch) {
+																return bestMatch;
+															}
+														}
+													}
+													
+													// Fallback to processing the text
+													const parts = rawText.split(" - ");
+													return parts.length >= 3 ? parts[1].trim() : rawText;
 												},
 												urlSelector: (e) => {
 													const anchor =
@@ -2788,45 +2870,73 @@
 											}
 										);
 
-										// Second selector - new addition
+										// Second selector - for video pages with h1 in headline
 										(0,
 										_check__WEBPACK_IMPORTED_MODULE_0__.z)(
 											_dataTypes__WEBPACK_IMPORTED_MODULE_1__
 												.We.Scene,
-											"html body.view_video_page.dark.no-touch div.container div.content.custom div.block-video.false div.video-holder div.video-info div.info-holder div#tab_video_info.tab-content div.headline h1",
+											"div.headline h1",
 											{
 												observe: true,
 												titleSelector: (e) => {
-													const rawText =
-														e.innerText.trim();
-													// Extract scene title from the full text
-													// Pattern: "Sis Loves Me - Ellie Murphy - Austin Pierce - Tiny Rhea - How Far Will She Go To Join This Sorority? / 16.08.2024"
-													// The scene title is the last part before the date (before " / ")
-													const dateIndex =
-														rawText.lastIndexOf(
-															" / "
-														);
-													if (dateIndex !== -1) {
-														const beforeDate =
-															rawText.substring(
-																0,
-																dateIndex
-															);
-														const parts =
-															beforeDate.split(
-																" - "
-															);
-														if (parts.length >= 2) {
-															// Return the last part before the date
-															return parts[
-																parts.length - 1
-															].trim();
+													const rawText = e.innerText.trim();
+													
+													// Remove date part first (everything after " / ")
+													const dateIndex = rawText.lastIndexOf(" / ");
+													const textWithoutDate = dateIndex !== -1 ? rawText.substring(0, dateIndex) : rawText;
+													
+													// Try to extract title using URL slug matching
+													const urlMatch = location.href.match(/\/videos\/\d+\/([^\/]+)\//);
+													if (urlMatch) {
+														const urlSlug = urlMatch[1];
+														
+														// Find the matching part in the title (without date)
+														const titleParts = textWithoutDate.split(" - ");
+														let bestMatch = "";
+														let bestMatchScore = 0;
+														
+														// Try all possible combinations of consecutive parts
+														for (let i = 1; i < titleParts.length; i++) {
+															for (let j = i; j < titleParts.length; j++) {
+																const combinedPart = titleParts.slice(i, j + 1).join(" - ");
+																
+																// Convert to searchable format
+																const titleSlug = combinedPart.toLowerCase()
+																	.replace(/[^a-z0-9\s]/g, '')
+																	.replace(/\s+/g, '');
+																const searchSlug = urlSlug.toLowerCase()
+																	.replace(/[^a-z0-9\s]/g, '')
+																	.replace(/\s+/g, '');
+																
+																if (titleSlug.includes(searchSlug) || searchSlug.includes(titleSlug)) {
+																	// Calculate a score that balances match quality and length
+																	const matchRatio = Math.min(titleSlug.length, searchSlug.length) / Math.max(titleSlug.length, searchSlug.length);
+																	const lengthPenalty = Math.max(0, (combinedPart.length - searchSlug.length * 2) / 100);
+																	const matchScore = matchRatio - lengthPenalty;
+																	
+																	if (matchScore > bestMatchScore) {
+																		bestMatch = combinedPart;
+																		bestMatchScore = matchScore;
+																	}
+																}
+															}
+														}
+														
+														if (bestMatch) {
+															return bestMatch;
 														}
 													}
-													return rawText;
+													
+													// Fallback: extract title from the text without date
+													// Pattern: "Studio - Performer1 - Performer2 - Scene Title - Episode"
+													const parts = textWithoutDate.split(" - ");
+													if (parts.length >= 2) {
+														// Return the last part
+														return parts[parts.length - 1].trim();
+													}
+													return textWithoutDate;
 												},
-												urlSelector: () =>
-													location.href,
+												urlSelector: () => location.href,
 											}
 										);
 									}, 1000);
